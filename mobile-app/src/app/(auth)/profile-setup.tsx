@@ -241,8 +241,8 @@ export default function ProfileSetupScreen() {
                     if (data.detectedIdNumber) {
                         setIdCardNumber(data.detectedIdNumber);
                     }
-                    if (data.fullName && (!fullName || fullName.trim().length === 0)) {
-                        setFullName(data.fullName);
+                    if (data.fullName && (!name || name.trim().length === 0)) {
+                        setName(data.fullName);
                         setNameTouched(true);
                     }
                     if (data.address && (!address || address.trim().length === 0)) {
@@ -937,6 +937,7 @@ export default function ProfileSetupScreen() {
                                         { key: 'OTHER', label: t('auth.genderOther') },
                                     ].map((item) => {
                                         const selected = gender === item.key;
+                                        const activeColor = userRole === 'worker' ? colors.secondary : colors.primary;
                                         return (
                                             <TouchableOpacity
                                                 key={item.key}
@@ -947,13 +948,13 @@ export default function ProfileSetupScreen() {
                                                     paddingVertical: 12,
                                                     borderRadius: 14,
                                                     backgroundColor: selected
-                                                        ? userRole === 'worker' ? colors.secondary : colors.primary
-                                                        : colors.surfaceContainer,
+                                                        ? colors.surfaceContainer
+                                                        : colors.surface,
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     borderWidth: 1.5,
                                                     borderColor: selected
-                                                        ? userRole === 'worker' ? colors.secondary : colors.primary
+                                                        ? activeColor
                                                         : colors.border,
                                                 }}
                                             >
@@ -961,7 +962,7 @@ export default function ProfileSetupScreen() {
                                                     style={{
                                                         fontSize: 13,
                                                         fontWeight: '700',
-                                                        color: selected ? colors.onPrimary : colors.text,
+                                                        color: selected ? activeColor : colors.textSecondary,
                                                     }}
                                                 >
                                                     {item.label}
@@ -1310,14 +1311,14 @@ export default function ProfileSetupScreen() {
                                                         justifyContent: 'center',
                                                         paddingVertical: 12,
                                                         borderRadius: 14,
-                                                        backgroundColor: colors.surfaceContainer,
-                                                        borderWidth: 1,
-                                                        borderColor: colors.border,
+                                                        backgroundColor: colors.surface,
+                                                        borderWidth: 1.5,
+                                                        borderColor: colors.secondary,
                                                         gap: 8,
                                                     }}
                                                 >
                                                     <Radio size={16} color={colors.secondary} />
-                                                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.secondary }}>
                                                         {language === 'vi' ? 'Bắt đầu quét Chip NFC' : 'Start NFC Chip Scan'}
                                                     </Text>
                                                 </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ export default function WorkerOnDutyScreen() {
     const router = useRouter();
     const { colors, gradients, shadows } = useAppTheme();
     const { t, language } = useI18n();
+    const [hasArrived, setHasArrived] = useState(false);
 
     const handleCallCustomer = () => {
         Alert.alert(
@@ -178,9 +179,22 @@ export default function WorkerOnDutyScreen() {
                         </TouchableOpacity>
                     </View>
 
+                    {/* Nút Hành động chính: BÁO ĐÃ ĐẾN NƠI -> HOÀN THÀNH & CHỤP ẢNH (Primary Button - Section 1) */}
                     <TouchableOpacity
                         activeOpacity={0.88}
-                        onPress={() => router.push('/(worker)/proof')}
+                        onPress={() => {
+                            if (!hasArrived) {
+                                setHasArrived(true);
+                                Alert.alert(
+                                    t('common.success'),
+                                    language === 'vi'
+                                        ? 'Đã thông báo cho khách hàng: Bạn đã có mặt tại địa điểm hẹn!'
+                                        : 'Client notified: You have arrived at the location!'
+                                );
+                            } else {
+                                router.push('/(worker)/proof');
+                            }
+                        }}
                         style={[
                             {
                                 width: '100%',
@@ -198,7 +212,9 @@ export default function WorkerOnDutyScreen() {
                             style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 16 }}
                         >
                             <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '800' }}>
-                                {t('worker.finishJobBtn')} & {language === 'vi' ? 'Gửi ảnh nghiệm thu' : 'Submit Proof'}
+                                {!hasArrived
+                                    ? (language === 'vi' ? 'BÁO ĐÃ ĐẾN NƠI' : 'REPORT ARRIVAL')
+                                    : (language === 'vi' ? 'HOÀN THÀNH & CHỤP ẢNH' : 'FINISH & TAKE PHOTO')}
                             </Text>
                         </LinearGradient>
                     </TouchableOpacity>

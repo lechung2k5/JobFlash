@@ -237,7 +237,7 @@ export default function RequesterTrackingScreen() {
                         ))}
                     </View>
 
-                    {/* Nút Nghiệm thu & Hoàn tất */}
+                    {/* Nút Nghiệm thu & Hoàn tất (Primary Button - Section 1) */}
                     <TouchableOpacity
                         activeOpacity={0.88}
                         onPress={handleFinishJob}
@@ -247,7 +247,6 @@ export default function RequesterTrackingScreen() {
                                 borderRadius: 16,
                                 overflow: 'hidden',
                                 marginTop: 4,
-                                marginBottom: 70,
                             },
                             shadows.electricGlow,
                         ]}
@@ -259,9 +258,48 @@ export default function RequesterTrackingScreen() {
                             style={{ paddingVertical: 14, alignItems: 'center', borderRadius: 16 }}
                         >
                             <Text style={{ color: colors.onPrimary, fontSize: 15, fontWeight: '800' }}>
-                                {language === 'vi' ? 'Nghiệm thu ca việc & Đánh giá' : 'Approve Work & Rate'}
+                                {language === 'vi' ? 'NGHIỆM THU & HOÀN THÀNH' : 'APPROVE & COMPLETE'}
                             </Text>
                         </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Nút Hủy công việc (Destructive Button - Section 3) */}
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => {
+                            Alert.alert(
+                                language === 'vi' ? 'Hủy công việc' : 'Cancel Job',
+                                language === 'vi'
+                                    ? 'Bạn có chắc chắn muốn hủy công việc này không? Các thợ đang di chuyển sẽ được thông báo.'
+                                    : 'Are you sure you want to cancel this job? En-route workers will be notified.',
+                                [
+                                    { text: language === 'vi' ? 'Không' : 'No', style: 'cancel' },
+                                    {
+                                        text: language === 'vi' ? 'Hủy công việc' : 'Cancel Job',
+                                        style: 'destructive',
+                                        onPress: () => router.replace('/(requester)'),
+                                    },
+                                ]
+                            );
+                        }}
+                        style={[
+                            {
+                                width: '100%',
+                                paddingVertical: 14,
+                                borderRadius: 16,
+                                backgroundColor: colors.surface,
+                                borderWidth: 1.5,
+                                borderColor: colors.error,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: 70,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <Text style={{ color: colors.error, fontSize: 14, fontWeight: '800' }}>
+                            {language === 'vi' ? 'HỦY CÔNG VIỆC' : 'CANCEL JOB'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
 

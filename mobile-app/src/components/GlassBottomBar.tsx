@@ -78,11 +78,11 @@ export default function GlassBottomBar() {
                 styles.container,
                 {
                     backgroundColor: isDark
-                        ? 'rgba(18, 13, 27, 0.92)'
+                        ? 'rgba(15, 23, 42, 0.92)'
                         : 'rgba(255, 255, 255, 0.92)',
                     borderTopColor: isDark
                         ? 'rgba(255, 255, 255, 0.12)'
-                        : '#ebdffa',
+                        : colors.border,
                     paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
                 },
                 shadows.floating,

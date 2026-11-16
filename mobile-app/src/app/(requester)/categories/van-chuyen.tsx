@@ -942,7 +942,7 @@ export default function VanChuyenJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -983,7 +983,7 @@ export default function VanChuyenJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1001,7 +1001,7 @@ export default function VanChuyenJobScreen() {
                                     style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',
-                                        backgroundColor: isDark ? '#2e1065' : '#f3e8ff',
+                                        backgroundColor: isDark ? '#2e1065' : '#eff6ff',
                                         paddingHorizontal: 10,
                                         paddingVertical: 4,
                                         borderRadius: 20,
@@ -1034,7 +1034,7 @@ export default function VanChuyenJobScreen() {
                                     borderRadius: 12,
                                     backgroundColor: colors.surfaceContainerLow,
                                     borderWidth: 1,
-                                    borderColor: isDark ? colors.border : '#ebdffa',
+                                    borderColor: isDark ? colors.border : '#e2e8f0',
                                 }}
                             >
                                 <MapPin size={18} color="#16a34a" style={{ marginRight: 8 }} />
@@ -1094,7 +1094,7 @@ export default function VanChuyenJobScreen() {
                                         paddingVertical: 9,
                                         paddingHorizontal: 8,
                                         borderRadius: 10,
-                                        backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                        backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                         borderWidth: 1,
                                         borderColor: isDark ? colors.border : '#e9d5ff',
                                         gap: 6,
@@ -1153,7 +1153,7 @@ export default function VanChuyenJobScreen() {
                                     borderRadius: 12,
                                     backgroundColor: colors.surfaceContainerLow,
                                     borderWidth: 1,
-                                    borderColor: isDark ? colors.border : '#ebdffa',
+                                    borderColor: isDark ? colors.border : '#e2e8f0',
                                 }}
                             >
                                 <MapPin size={18} color={colors.secondary} style={{ marginRight: 8 }} />
@@ -1213,7 +1213,7 @@ export default function VanChuyenJobScreen() {
                                         paddingVertical: 9,
                                         paddingHorizontal: 8,
                                         borderRadius: 10,
-                                        backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                        backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                         borderWidth: 1,
                                         borderColor: isDark ? colors.border : '#e9d5ff',
                                         gap: 6,
@@ -1264,7 +1264,7 @@ export default function VanChuyenJobScreen() {
                                     borderRadius: 16,
                                     overflow: 'hidden',
                                     borderWidth: 1,
-                                    borderColor: isDark ? colors.border : '#ebdffa',
+                                    borderColor: isDark ? colors.border : '#e2e8f0',
                                     backgroundColor: colors.surfaceContainerLow,
                                 }}
                             >
@@ -1278,7 +1278,7 @@ export default function VanChuyenJobScreen() {
                                         paddingVertical: 10,
                                         backgroundColor: colors.surface,
                                         borderBottomWidth: 1,
-                                        borderColor: isDark ? colors.border : '#ebdffa',
+                                        borderColor: isDark ? colors.border : '#e2e8f0',
                                     }}
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
@@ -1402,7 +1402,7 @@ export default function VanChuyenJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1455,12 +1455,12 @@ export default function VanChuyenJobScreen() {
                                                         height: 50,
                                                         borderRadius: 14,
                                                         backgroundColor: isSelected
-                                                            ? (isDark ? '#3b0764' : '#f3e8ff')
+                                                            ? (isDark ? '#172554' : '#eff6ff')
                                                             : (isDark ? colors.surfaceContainer : '#f8fafc'),
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
                                                         borderWidth: 1.5,
-                                                        borderColor: isSelected ? colors.primary : (isDark ? colors.border : '#ebdffa'),
+                                                        borderColor: isSelected ? colors.primary : (isDark ? colors.border : '#e2e8f0'),
                                                         marginTop: 2,
                                                     }}
                                                 >
@@ -1558,7 +1558,7 @@ export default function VanChuyenJobScreen() {
                                                         <Text
                                                             style={{
                                                                 fontSize: 10,
-                                                                color: vanCapacity === '500kg' ? '#f3e8ff' : colors.textSecondary,
+                                                                color: vanCapacity === '500kg' ? '#eff6ff' : colors.textSecondary,
                                                                 marginTop: 2,
                                                             }}
                                                         >
@@ -1591,7 +1591,7 @@ export default function VanChuyenJobScreen() {
                                                         <Text
                                                             style={{
                                                                 fontSize: 10,
-                                                                color: vanCapacity === '1ton' ? '#f3e8ff' : colors.textSecondary,
+                                                                color: vanCapacity === '1ton' ? '#eff6ff' : colors.textSecondary,
                                                                 marginTop: 2,
                                                             }}
                                                         >
@@ -1615,7 +1615,7 @@ export default function VanChuyenJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1694,7 +1694,7 @@ export default function VanChuyenJobScreen() {
                                         borderRadius: 12,
                                         backgroundColor: colors.surfaceContainerLow,
                                         borderWidth: 1,
-                                        borderColor: isDark ? colors.border : '#ebdffa',
+                                        borderColor: isDark ? colors.border : '#e2e8f0',
                                         marginBottom: 10,
                                     }}
                                 >
@@ -1748,7 +1748,7 @@ export default function VanChuyenJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1779,7 +1779,7 @@ export default function VanChuyenJobScreen() {
                                 textAlignVertical: 'top',
                                 minHeight: 85,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                             }}
                         />
                     </View>
@@ -1794,7 +1794,7 @@ export default function VanChuyenJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -2351,7 +2351,7 @@ export default function VanChuyenJobScreen() {
                                     borderRadius: 16,
                                     backgroundColor: colors.surface,
                                     borderWidth: 1,
-                                    borderColor: isDark ? colors.border : '#ebdffa',
+                                    borderColor: isDark ? colors.border : '#e2e8f0',
                                     marginBottom: 20,
                                 },
                                 shadows.card,
@@ -2434,7 +2434,7 @@ export default function VanChuyenJobScreen() {
                                                 borderWidth: 1.5,
                                                 borderColor: isCurrentSelected
                                                     ? '#10b981'
-                                                    : (isDark ? colors.border : '#ebdffa'),
+                                                    : (isDark ? colors.border : '#e2e8f0'),
                                                 padding: 14,
                                                 opacity: isEligible ? 1 : 0.65,
                                             },
@@ -2450,7 +2450,7 @@ export default function VanChuyenJobScreen() {
                                                     borderRadius: 12,
                                                     backgroundColor: isCurrentSelected
                                                         ? '#10b98125'
-                                                        : (isDark ? colors.surfaceContainer : '#f3e8ff'),
+                                                        : (isDark ? colors.surfaceContainer : '#eff6ff'),
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                 }}

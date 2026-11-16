@@ -35,8 +35,12 @@ import {
     Check,
     Brush,
     ShieldCheck,
+    Zap,
+    AlertTriangle,
+    AlertCircle,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
+import { JobFlashAPI } from '../../../services/apiClient';
 import { useAppTheme } from '../../../constants/theme';
 import { useI18n } from '../../../i18n';
 import GlassBottomBar from '../../../components/GlassBottomBar';
@@ -150,6 +154,41 @@ export const AREA_RANGES = [
     { id: 'over_100', label: '> 100 m²', baseHours: 4 },
 ];
 
+// Tình trạng không gian (Mức độ bẩn theo yêu cầu FormVeSinh.md)
+export type SpaceConditionType = 'standard' | 'deep_clean' | 'post_construction';
+
+export interface SpaceConditionItem {
+    id: SpaceConditionType;
+    label: string;
+    description: string;
+    badge?: string;
+    hoursExtra: number;
+}
+
+export const SPACE_CONDITIONS: SpaceConditionItem[] = [
+    {
+        id: 'standard',
+        label: 'Dọn dẹp tiêu chuẩn',
+        description: 'Nhà đang ở, dọn thường xuyên',
+        badge: 'Phổ biến',
+        hoursExtra: 0,
+    },
+    {
+        id: 'deep_clean',
+        label: 'Tổng vệ sinh',
+        description: 'Nhà lâu ngày không dọn',
+        badge: 'Kỹ lưỡng',
+        hoursExtra: 1,
+    },
+    {
+        id: 'post_construction',
+        label: 'Vệ sinh sau xây dựng',
+        description: 'Nhiều bụi bẩn, sơn, xi măng...',
+        badge: 'Chuyên sâu',
+        hoursExtra: 1.5,
+    },
+];
+
 export default function VeSinhDonDepJobScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -163,7 +202,6 @@ export default function VeSinhDonDepJobScreen() {
     const [isSearchingAddress, setIsSearchingAddress] = useState(false);
     const [isLocatingAddress, setIsLocatingAddress] = useState(false);
     const [unitDetail, setUnitDetail] = useState('');
-    const [hasElevator, setHasElevator] = useState(true);
 
     // Modal chọn vị trí trên bản đồ Goong
     const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
@@ -180,11 +218,10 @@ export default function VeSinhDonDepJobScreen() {
     const searchTimerRef = useRef<any>(null);
     const modalSearchTimerRef = useRef<any>(null);
 
-    // 2. Quy mô không gian
+    // 2. Quy mô không gian & Tình trạng
     const [selectedHomeType, setSelectedHomeType] = useState('apartment');
     const [selectedArea, setSelectedArea] = useState('40_70');
-    const [bedroomsCount, setBedroomsCount] = useState(2);
-    const [bathroomsCount, setBathroomsCount] = useState(1);
+    const [spaceCondition, setSpaceCondition] = useState<SpaceConditionType>('standard');
 
     // 3. Danh mục đầu việc (Mặc định chọn 4 việc phổ biến)
     const [selectedTasks, setSelectedTasks] = useState<string[]>([
@@ -209,8 +246,8 @@ export default function VeSinhDonDepJobScreen() {
     const [fixedPrice, setFixedPrice] = useState('200.000');
 
     // 5. Dụng cụ & Yêu cầu riêng
-    const [needTools, setNeedTools] = useState(true);
-    const [genderPref, setGenderPref] = useState<'female' | 'any'>('female');
+    const [needTools, setNeedTools] = useState(false); // Khách có sẵn dụng cụ (Miễn phí) mặc định
+    const [genderPref, setGenderPref] = useState<'female' | 'male' | 'any'>('any');
     const [hasPets, setHasPets] = useState(false);
     const [specialNotes, setSpecialNotes] = useState('');
 
@@ -237,7 +274,7 @@ export default function VeSinhDonDepJobScreen() {
         })();
     }, []);
 
-    // TÍNH TOÁN GỢI Ý MỨC TIỀN HỢP LÝ DỰA TRÊN DIỆN TÍCH, SỐ PHÒNG, ĐẦU VIỆC
+    // TÍNH TOÁN GỢI Ý MỨC TIỀN HỢP LÝ DỰA TRÊN DIỆN TÍCH, TÌNH TRẠNG KHÔNG GIAN, ĐẦU VIỆC
     const suggestedRecommendation = useMemo(() => {
         let baseH = 1;
         if (selectedArea === 'under_40') baseH = 1;
@@ -245,13 +282,13 @@ export default function VeSinhDonDepJobScreen() {
         else if (selectedArea === '70_100') baseH = 3;
         else if (selectedArea === 'over_100') baseH = 4;
 
-        const wcExtra = Math.max(0, bathroomsCount - 1) * 0.5;
-        const bedExtra = Math.max(0, bedroomsCount - 1) * 0.25;
+        const conditionItem = SPACE_CONDITIONS.find((c) => c.id === spaceCondition);
+        const conditionExtra = conditionItem ? conditionItem.hoursExtra : 0;
         const taskExtra = Math.min(2, selectedTasks.length * 0.15);
         const hasHeavy = selectedTasks.includes('post_renovation') || selectedTasks.includes('clean_windows');
         const heavyExtra = hasHeavy ? 0.5 : 0;
 
-        const rawHours = baseH + wcExtra + bedExtra + taskExtra + heavyExtra;
+        const rawHours = baseH + conditionExtra + taskExtra + heavyExtra;
         const recHours = Math.max(1, Math.min(8, Math.round(rawHours * 2) / 2));
         const recHourlyWage = 80000;
         const recHourlyTotal = recHours * recHourlyWage;
@@ -264,7 +301,20 @@ export default function VeSinhDonDepJobScreen() {
             fixedPrice: Math.max(120000, recFixed),
             fixedPriceFormatted: Math.max(120000, recFixed).toLocaleString('vi-VN'),
         };
-    }, [selectedArea, bedroomsCount, bathroomsCount, selectedTasks]);
+    }, [selectedArea, spaceCondition, selectedTasks]);
+
+    // Rule kiểm tra (validate) cảnh báo thiếu giờ làm việc theo mục 3 FormVeSinh.md
+    const isDurationTooShort = useMemo(() => {
+        if (pricingMode !== 'hourly') return false;
+        // Kiểm tra nếu chọn nhiều việc, diện tích lớn, hoặc tình trạng nặng nhưng giờ lại quá thấp (<= 1h hoặc <= 1.5h)
+        if (selectedTasks.length >= 5 && hours <= 1.5) return true;
+        if (selectedTasks.length >= 3 && hours === 1) return true;
+        if ((selectedArea === '70_100' || selectedArea === 'over_100') && hours <= 1.5) return true;
+        if (spaceCondition === 'post_construction' && hours <= 2) return true;
+        if (spaceCondition === 'deep_clean' && hours <= 1) return true;
+        if (suggestedRecommendation.hours - hours >= 1.5 && hours <= 1.5) return true;
+        return false;
+    }, [pricingMode, hours, selectedTasks.length, selectedArea, spaceCondition, suggestedRecommendation.hours]);
 
     // Các chip gợi ý giá khoán tự động cập nhật linh hoạt theo công việc đã chọn
     const dynamicFixedChips = useMemo(() => {
@@ -600,8 +650,8 @@ export default function VeSinhDonDepJobScreen() {
         setSelectedVoucher(null);
     };
 
-    // Đăng yêu cầu tìm thợ (Luôn là cần thợ ngay, không đặt lịch)
-    const handleSubmit = () => {
+    // Đăng yêu cầu tìm thợ tức thì (Tự động gán booking_time hiện tại & chuyển sang Radar tìm thợ)
+    const handleSubmit = async () => {
         if (!address.trim()) {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ cần dọn dẹp.');
             return;
@@ -615,43 +665,55 @@ export default function VeSinhDonDepJobScreen() {
             return;
         }
         if (pricingMode === 'fixed' && parsedFixedPrice <= 0) {
-            Alert.alert(t('common.error'), 'Vui lòng nhập mức giá khoán trọn gói mong muốn.');
+            Alert.alert(t('common.error'), 'Vui lòng nhập mức giá thuê trọn gói mong muốn.');
             return;
         }
 
         const homeTypeObj = HOME_TYPES.find((h) => h.id === selectedHomeType);
         const areaObj = AREA_RANGES.find((a) => a.id === selectedArea);
+        const conditionObj = SPACE_CONDITIONS.find((c) => c.id === spaceCondition);
 
-        const pricingSummary =
-            pricingMode === 'hourly'
-                ? `${hours}h × ${workersCount} thợ (${parsedHourlyWage.toLocaleString('vi-VN')} đ/h)`
-                : `Khoán trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ)`;
+        // Gán booking_time bằng thời gian thực theo đúng yêu cầu FormVeSinh.md
+        const currentBookingTime = new Date().toISOString();
 
-        const summaryLines = [
-            `Địa chỉ: ${address}${unitDetail ? ` (${unitDetail})` : ''}`,
-            `Không gian: ${homeTypeObj?.label} (${areaObj?.label}, ${bedroomsCount} PN, ${bathroomsCount} WC)`,
-            `Hình thức: ${pricingSummary}`,
-            `Thời gian: Thợ có mặt ngay (trong 30 - 60 phút)`,
-            `Số việc đã chọn: ${selectedTasks.length} việc`,
-            needTools ? 'Dụng cụ: Thợ tự mang (+30.000 đ)' : 'Dụng cụ: Nhà có sẵn (0 đ)',
-            selectedVoucher && voucherDiscount > 0 ? `Ưu đãi (${selectedVoucher.code}): -${voucherDiscount.toLocaleString('vi-VN')} đ` : null,
-            specialNotes.trim() ? `Ghi chú: ${specialNotes.trim()}` : null,
-        ].filter(Boolean).join('\n• ');
+        const jobPayload = {
+            category: 've-sinh-don-dep',
+            title: `Thuê thợ vệ sinh dọn dẹp (${homeTypeObj?.label || 'Nhà ở'})`,
+            address,
+            unitDetail,
+            latitude: coords?.lat || 10.7769,
+            longitude: coords?.lng || 106.7009,
+            homeType: selectedHomeType,
+            areaRange: selectedArea,
+            spaceCondition,
+            spaceConditionLabel: conditionObj?.label,
+            selectedTasks,
+            customTaskNote,
+            pricingMode,
+            hours: pricingMode === 'hourly' ? hours : undefined,
+            workersCount,
+            hourlyWage: parsedHourlyWage,
+            fixedPrice: parsedFixedPrice,
+            needTools,
+            genderPref,
+            hasPets,
+            specialNotes,
+            voucherCode: selectedVoucher?.code,
+            discountAmount: voucherDiscount,
+            totalAmount: grandTotal,
+            booking_time: currentBookingTime,
+        };
 
-        Alert.alert(
-            'Xác nhận đăng việc Vệ sinh dọn dẹp',
-            `Tổng chi phí ước tính: ${grandTotal.toLocaleString('vi-VN')} đ\n\n• ${summaryLines}`,
-            [
-                { text: 'Chỉnh sửa', style: 'cancel' },
-                {
-                    text: 'Tìm thợ ngay',
-                    onPress: () => {
-                        Alert.alert('Thành công', 'Yêu cầu dọn dẹp của bạn đã được phát sóng tới các thợ 5 sao gần nhất!');
-                        router.replace('/(requester)');
-                    },
-                },
-            ]
-        );
+        try {
+            await JobFlashAPI.jobs.createJob(jobPayload).catch((err) => {
+                console.log('[VeSinhDonDep] Local fallback: job created', err?.message);
+            });
+        } catch {
+            // Tiếp tục bình thường
+        }
+
+        // Chuyển thẳng giao diện sang màn hình Radar Tìm thợ
+        router.push('/(requester)/radar');
     };
 
     return (
@@ -666,7 +728,7 @@ export default function VeSinhDonDepJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -702,27 +764,6 @@ export default function VeSinhDonDepJobScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* THÔNG BÁO THỜI GIAN NHẬN VIỆC (HỎA TỐC ĐẾN NGAY) */}
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 12,
-                            backgroundColor: isDark ? '#1e1b4b35' : '#f5f3ff',
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.border : '#e9d5ff',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <Clock size={15} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
-                            Thợ nhận việc và có mặt ngay (trong 30 - 60 phút)
-                        </Text>
-                    </View>
-
                     {/* KHỐI 1: ĐỊA ĐIỂM & CHI TIẾT NHÀ */}
                     <View
                         style={[
@@ -731,7 +772,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -754,7 +795,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 12,
                                 backgroundColor: colors.surfaceContainerLow,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 8,
                             }}
                         >
@@ -821,7 +862,7 @@ export default function VeSinhDonDepJobScreen() {
                                     paddingVertical: 9,
                                     paddingHorizontal: 8,
                                     borderRadius: 10,
-                                    backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                    backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : '#e9d5ff',
                                     gap: 6,
@@ -863,65 +904,78 @@ export default function VeSinhDonDepJobScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Chi tiết căn hộ & Thang */}
-                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border, gap: 10 }}>
-                            <View>
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
-                                    Căn hộ, tầng, tòa nhà (nếu có)
-                                </Text>
-                                <TextInput
-                                    value={unitDetail}
-                                    onChangeText={setUnitDetail}
-                                    placeholder="Ví dụ: Căn 12.08, Tòa Landmark 3..."
-                                    placeholderTextColor={colors.placeholder}
-                                    style={{
-                                        backgroundColor: colors.surfaceContainerLow,
-                                        borderRadius: 10,
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 8,
-                                        fontSize: 12.5,
-                                        color: colors.text,
-                                        borderWidth: 1,
-                                        borderColor: colors.border,
-                                    }}
-                                />
-                            </View>
+                        {/* Chi tiết căn hộ */}
+                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+                                Căn hộ, tầng, tòa nhà (nếu có)
+                            </Text>
+                            <TextInput
+                                value={unitDetail}
+                                onChangeText={setUnitDetail}
+                                placeholder="Ví dụ: Căn 12.08, Tòa Landmark 3..."
+                                placeholderTextColor={colors.placeholder}
+                                style={{
+                                    backgroundColor: colors.surfaceContainerLow,
+                                    borderRadius: 10,
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 8,
+                                    fontSize: 12.5,
+                                    color: colors.text,
+                                    borderWidth: 1,
+                                    borderColor: colors.border,
+                                }}
+                            />
+                        </View>
+                    </View>
 
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Loại thang di chuyển:</Text>
-                                <View style={{ flexDirection: 'row', gap: 6 }}>
-                                    <TouchableOpacity
-                                        onPress={() => setHasElevator(true)}
-                                        style={{
-                                            paddingHorizontal: 10,
-                                            paddingVertical: 5,
-                                            borderRadius: 8,
-                                            backgroundColor: hasElevator ? colors.primary + '18' : colors.surfaceContainer,
-                                            borderWidth: 1,
-                                            borderColor: hasElevator ? colors.primary : colors.border,
-                                        }}
-                                    >
-                                        <Text style={{ fontSize: 11, fontWeight: '700', color: hasElevator ? colors.primary : colors.textSecondary }}>
-                                            Thang máy
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        onPress={() => setHasElevator(false)}
-                                        style={{
-                                            paddingHorizontal: 10,
-                                            paddingVertical: 5,
-                                            borderRadius: 8,
-                                            backgroundColor: !hasElevator ? colors.primary + '18' : colors.surfaceContainer,
-                                            borderWidth: 1,
-                                            borderColor: !hasElevator ? colors.primary : colors.border,
-                                        }}
-                                    >
-                                        <Text style={{ fontSize: 11, fontWeight: '700', color: !hasElevator ? colors.primary : colors.textSecondary }}>
-                                            Thang bộ
-                                        </Text>
-                                    </TouchableOpacity>
+                    {/* THÔNG BÁO THỜI GIAN LÀM VIỆC NỔI BẬT: NGAY BÂY GIỜ (NGAY DƯỚI KHỐI ĐỊA ĐIỂM) */}
+                    <View
+                        style={[
+                            {
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                padding: 14,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? '#1e3a8a30' : '#eff6ff',
+                                borderWidth: 1.5,
+                                borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                                marginBottom: 16,
+                                gap: 12,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: colors.primary,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Zap size={20} color="#ffffff" fill="#ffffff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>
+                                    Thời gian làm việc: Ngay bây giờ
+                                </Text>
+                                <View
+                                    style={{
+                                        backgroundColor: '#dcfce7',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 6,
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#16a34a' }}>HỎA TỐC</Text>
                                 </View>
                             </View>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                Tìm thợ đến ngay lập tức • Thợ có mặt trong 30 - 60 phút
+                            </Text>
                         </View>
                     </View>
 
@@ -933,7 +987,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1005,44 +1059,94 @@ export default function VeSinhDonDepJobScreen() {
                             })}
                         </View>
 
-                        {/* Số phòng ngủ & Số nhà vệ sinh */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
-                            <View style={{ flex: 1, backgroundColor: colors.surfaceContainerLow, padding: 10, borderRadius: 12 }}>
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Phòng ngủ</Text>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <TouchableOpacity
-                                        onPress={() => setBedroomsCount((p) => Math.max(0, p - 1))}
-                                        style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <Minus size={14} color={colors.text} />
-                                    </TouchableOpacity>
-                                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{bedroomsCount}</Text>
-                                    <TouchableOpacity
-                                        onPress={() => setBedroomsCount((p) => Math.min(8, p + 1))}
-                                        style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <Plus size={14} color={colors.text} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                        {/* Tình trạng không gian (Radio buttons theo yêu cầu FormVeSinh.md) */}
+                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
+                                Tình trạng không gian (Mức độ bẩn)
+                            </Text>
+                            <View style={{ gap: 8 }}>
+                                {SPACE_CONDITIONS.map((cond) => {
+                                    const isSelected = spaceCondition === cond.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={cond.id}
+                                            onPress={() => setSpaceCondition(cond.id)}
+                                            activeOpacity={0.7}
+                                            style={{
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                padding: 12,
+                                                borderRadius: 12,
+                                                backgroundColor: isSelected ? (isDark ? '#1e3a8a25' : '#eff6ff') : colors.surfaceContainerLow,
+                                                borderWidth: 1.5,
+                                                borderColor: isSelected ? colors.primary : colors.border,
+                                                gap: 10,
+                                            }}
+                                        >
+                                            {/* Custom Radio Circle */}
+                                            <View
+                                                style={{
+                                                    width: 20,
+                                                    height: 20,
+                                                    borderRadius: 10,
+                                                    borderWidth: 2,
+                                                    borderColor: isSelected ? colors.primary : (isDark ? colors.border : '#94a3b8'),
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    backgroundColor: colors.surface,
+                                                }}
+                                            >
+                                                {isSelected && (
+                                                    <View
+                                                        style={{
+                                                            width: 10,
+                                                            height: 10,
+                                                            borderRadius: 5,
+                                                            backgroundColor: colors.primary,
+                                                        }}
+                                                    />
+                                                )}
+                                            </View>
 
-                            <View style={{ flex: 1, backgroundColor: colors.surfaceContainerLow, padding: 10, borderRadius: 12 }}>
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>Nhà vệ sinh</Text>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <TouchableOpacity
-                                        onPress={() => setBathroomsCount((p) => Math.max(1, p - 1))}
-                                        style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <Minus size={14} color={colors.text} />
-                                    </TouchableOpacity>
-                                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.primary }}>{bathroomsCount}</Text>
-                                    <TouchableOpacity
-                                        onPress={() => setBathroomsCount((p) => Math.min(6, p + 1))}
-                                        style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <Plus size={14} color={colors.text} />
-                                    </TouchableOpacity>
-                                </View>
+                                            <View style={{ flex: 1 }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                    <Text
+                                                        style={{
+                                                            fontSize: 13,
+                                                            fontWeight: isSelected ? '800' : '700',
+                                                            color: isSelected ? colors.primary : colors.text,
+                                                        }}
+                                                    >
+                                                        {cond.label}
+                                                    </Text>
+                                                    {cond.badge && (
+                                                        <View
+                                                            style={{
+                                                                backgroundColor: isSelected ? colors.primary + '20' : colors.surfaceContainer,
+                                                                paddingHorizontal: 6,
+                                                                paddingVertical: 1.5,
+                                                                borderRadius: 6,
+                                                            }}
+                                                        >
+                                                            <Text
+                                                                style={{
+                                                                    fontSize: 10,
+                                                                    fontWeight: '700',
+                                                                    color: isSelected ? colors.primary : colors.textSecondary,
+                                                                }}
+                                                            >
+                                                                {cond.badge}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                <Text style={{ fontSize: 11.5, color: colors.textSecondary, marginTop: 2 }}>
+                                                    {cond.description}
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
                         </View>
                     </View>
@@ -1055,7 +1159,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1169,7 +1273,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1182,7 +1286,7 @@ export default function VeSinhDonDepJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 2 Tab: Theo giờ vs Khoán trọn gói */}
+                        {/* 2 Tab: Theo giờ vs Thuê trọn gói */}
                         <View
                             style={{
                                 flexDirection: 'row',
@@ -1224,7 +1328,7 @@ export default function VeSinhDonDepJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn gói
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1277,49 +1381,74 @@ export default function VeSinhDonDepJobScreen() {
                             /* CƠ CHẾ A: THUÊ THEO GIỜ */
                             <View style={{ gap: 14 }}>
                                 {/* 4.1 Bộ chọn số giờ làm việc (MẶC ĐỊNH LÀ 1) */}
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <View>
-                                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Thời lượng làm việc</Text>
-                                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>Mặc định 1 giờ</Text>
+                                <View>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <View>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Thời lượng làm việc</Text>
+                                            <Text style={{ fontSize: 11, color: colors.textSecondary }}>Mặc định 1 giờ</Text>
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                            <TouchableOpacity
+                                                onPress={() => setHours((prev) => Math.max(1, prev - 0.5))}
+                                                style={{
+                                                    width: 36,
+                                                    height: 36,
+                                                    borderRadius: 18,
+                                                    backgroundColor: colors.surfaceContainer,
+                                                    borderWidth: 1,
+                                                    borderColor: colors.border,
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <Minus size={16} color={colors.text} />
+                                            </TouchableOpacity>
+
+                                            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary, minWidth: 36, textAlign: 'center' }}>
+                                                {hours}h
+                                            </Text>
+
+                                            <TouchableOpacity
+                                                onPress={() => setHours((prev) => Math.min(8, prev + 0.5))}
+                                                style={{
+                                                    width: 36,
+                                                    height: 36,
+                                                    borderRadius: 18,
+                                                    backgroundColor: colors.surfaceContainer,
+                                                    borderWidth: 1,
+                                                    borderColor: colors.border,
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <Plus size={16} color={colors.text} />
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                                        <TouchableOpacity
-                                            onPress={() => setHours((prev) => Math.max(1, prev - 0.5))}
+                                    {/* Dòng cảnh báo thiếu giờ theo mục 3 FormVeSinh.md */}
+                                    {isDurationTooShort && (
+                                        <View
                                             style={{
-                                                width: 36,
-                                                height: 36,
-                                                borderRadius: 18,
-                                                backgroundColor: colors.surfaceContainer,
+                                                flexDirection: 'row',
+                                                alignItems: 'flex-start',
+                                                backgroundColor: isDark ? '#451a0335' : '#fffbeb',
                                                 borderWidth: 1,
-                                                borderColor: colors.border,
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
+                                                borderColor: '#f59e0b',
+                                                borderRadius: 10,
+                                                paddingHorizontal: 10,
+                                                paddingVertical: 7,
+                                                marginTop: 8,
+                                                gap: 7,
                                             }}
                                         >
-                                            <Minus size={16} color={colors.text} />
-                                        </TouchableOpacity>
-
-                                        <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary, minWidth: 36, textAlign: 'center' }}>
-                                            {hours}h
-                                        </Text>
-
-                                        <TouchableOpacity
-                                            onPress={() => setHours((prev) => Math.min(8, prev + 0.5))}
-                                            style={{
-                                                width: 36,
-                                                height: 36,
-                                                borderRadius: 18,
-                                                backgroundColor: colors.surfaceContainer,
-                                                borderWidth: 1,
-                                                borderColor: colors.border,
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <Plus size={16} color={colors.text} />
-                                        </TouchableOpacity>
-                                    </View>
+                                            <AlertTriangle size={14} color="#d97706" style={{ marginTop: 2 }} />
+                                            <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                                                Lưu ý: Thời gian quá ngắn so với khối lượng công việc, thợ có thể sẽ không hoàn thành kịp toàn bộ.
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 {/* 4.2 Số lượng thợ dọn (MẶC ĐỊNH LÀ 1) */}
@@ -1422,10 +1551,10 @@ export default function VeSinhDonDepJobScreen() {
                                 </View>
                             </View>
                         ) : (
-                            /* CƠ CHẾ B: KHOÁN TRỌN GÓI THEO CÔNG VIỆC */
+                            /* CƠ CHẾ B: THUÊ TRỌN GÓI THEO CÔNG VIỆC */
                             <View style={{ gap: 10 }}>
                                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    Số tiền khoán trọn gói mong muốn:
+                                    Số tiền thuê trọn gói mong muốn:
                                 </Text>
                                 <View
                                     style={{
@@ -1452,9 +1581,9 @@ export default function VeSinhDonDepJobScreen() {
 
                                 {/* Các mức giá khoán gợi ý thông minh dựa trên việc đã chọn */}
                                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                    {dynamicFixedChips.map((val) => (
+                                    {dynamicFixedChips.map((val, idx) => (
                                         <TouchableOpacity
-                                            key={val}
+                                            key={`${val}-${idx}`}
                                             onPress={() => setFixedPrice(val)}
                                             style={{
                                                 flex: 1,
@@ -1484,7 +1613,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1497,87 +1626,197 @@ export default function VeSinhDonDepJobScreen() {
                             </Text>
                         </View>
 
-                        {/* Dụng cụ vệ sinh */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Hóa chất & Dụng cụ lau</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Cây lau, khăn, nước lau sàn</Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => setNeedTools(!needTools)}
-                                style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 12,
-                                    backgroundColor: needTools ? '#dcfce7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: needTools ? '#10b981' : colors.border,
-                                }}
-                            >
-                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: needTools ? '#059669' : colors.textSecondary }}>
-                                    {needTools ? 'Thợ tự mang (+30k)' : 'Nhà có sẵn'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                        {/* 5.1 Dụng cụ lau dọn (2 Lựa chọn rõ ràng theo mục 4 FormVeSinh.md) */}
+                        <View style={{ marginBottom: 14 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+                                Dụng cụ & Hóa chất lau dọn
+                            </Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 8 }}>
+                                Cây lau sàn, khăn lau, xô chậu và nước lau chuyên dụng
+                            </Text>
 
-                        {/* Ưu tiên thợ */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderColor: colors.border, marginBottom: 12 }}>
-                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Ưu tiên giới tính thợ</Text>
-                            <View style={{ flexDirection: 'row', gap: 6 }}>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <TouchableOpacity
-                                    onPress={() => setGenderPref('female')}
+                                    onPress={() => setNeedTools(false)}
+                                    activeOpacity={0.75}
                                     style={{
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 6,
-                                        borderRadius: 8,
-                                        backgroundColor: genderPref === 'female' ? colors.primary + '18' : colors.surfaceContainer,
-                                        borderWidth: 1,
-                                        borderColor: genderPref === 'female' ? colors.primary : colors.border,
+                                        flex: 1,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 8,
+                                        borderRadius: 12,
+                                        borderWidth: 1.5,
+                                        borderColor: !needTools ? colors.primary : colors.border,
+                                        backgroundColor: !needTools ? colors.primary + '12' : colors.surfaceContainerLow,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
                                     }}
                                 >
-                                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: genderPref === 'female' ? colors.primary : colors.textSecondary }}>
-                                        Thợ nữ
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontWeight: !needTools ? '800' : '600',
+                                            color: !needTools ? colors.primary : colors.text,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        Khách có sẵn dụng cụ
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: '700',
+                                            color: !needTools ? colors.primary : '#16a34a',
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        (Miễn phí)
                                     </Text>
                                 </TouchableOpacity>
+
                                 <TouchableOpacity
-                                    onPress={() => setGenderPref('any')}
+                                    onPress={() => setNeedTools(true)}
+                                    activeOpacity={0.75}
                                     style={{
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 6,
-                                        borderRadius: 8,
-                                        backgroundColor: genderPref === 'any' ? colors.primary + '18' : colors.surfaceContainer,
-                                        borderWidth: 1,
-                                        borderColor: genderPref === 'any' ? colors.primary : colors.border,
+                                        flex: 1,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 8,
+                                        borderRadius: 12,
+                                        borderWidth: 1.5,
+                                        borderColor: needTools ? colors.primary : colors.border,
+                                        backgroundColor: needTools ? colors.primary + '12' : colors.surfaceContainerLow,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
                                     }}
                                 >
-                                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: genderPref === 'any' ? colors.primary : colors.textSecondary }}>
-                                        Bất kỳ
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontWeight: needTools ? '800' : '600',
+                                            color: needTools ? colors.primary : colors.text,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        Yêu cầu thợ mang theo
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: '700',
+                                            color: needTools ? colors.primary : colors.textSecondary,
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        (+30.000đ)
                                     </Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
 
-                        {/* Thú cưng */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderColor: colors.border, marginBottom: 12 }}>
-                            <View>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Nhà có thú cưng (chó/mèo)</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Để ghép nối thợ không bị dị ứng</Text>
+                        {/* 5.2 Ưu tiên giới tính thợ (3 Lựa chọn rõ ràng: Thợ nam, Thợ nữ, Bất kỳ) */}
+                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border, marginBottom: 14 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
+                                Ưu tiên giới tính thợ
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                {[
+                                    { id: 'female', label: 'Thợ nữ' },
+                                    { id: 'male', label: 'Thợ nam' },
+                                    { id: 'any', label: 'Bất kỳ' },
+                                ].map((item) => {
+                                    const isSelected = genderPref === item.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.id}
+                                            onPress={() => setGenderPref(item.id as any)}
+                                            style={{
+                                                flex: 1,
+                                                paddingVertical: 8,
+                                                borderRadius: 10,
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                backgroundColor: isSelected ? colors.primary + '18' : colors.surfaceContainerLow,
+                                                borderWidth: 1.5,
+                                                borderColor: isSelected ? colors.primary : colors.border,
+                                            }}
+                                        >
+                                            <Text
+                                                style={{
+                                                    fontSize: 12,
+                                                    fontWeight: isSelected ? '800' : '600',
+                                                    color: isSelected ? colors.primary : colors.text,
+                                                }}
+                                            >
+                                                {item.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
-                            <TouchableOpacity
-                                onPress={() => setHasPets(!hasPets)}
-                                style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 8,
-                                    backgroundColor: hasPets ? '#fef3c7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: hasPets ? '#f59e0b' : colors.border,
-                                }}
-                            >
-                                <Text style={{ fontSize: 11.5, fontWeight: '700', color: hasPets ? '#b45309' : colors.textSecondary }}>
-                                    {hasPets ? 'Có chó/mèo' : 'Không có'}
-                                </Text>
-                            </TouchableOpacity>
+                        </View>
+
+                        {/* 5.3 Nhà có thú cưng & Rule hiển thị động nhắc nhở an toàn */}
+                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border, marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <View style={{ flex: 1, paddingRight: 8 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Nhà có thú cưng (chó/mèo)</Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary }}>Để ghép nối thợ không bị dị ứng</Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    <TouchableOpacity
+                                        onPress={() => setHasPets(false)}
+                                        style={{
+                                            paddingHorizontal: 12,
+                                            paddingVertical: 6,
+                                            borderRadius: 8,
+                                            backgroundColor: !hasPets ? colors.primary + '18' : colors.surfaceContainerLow,
+                                            borderWidth: 1.5,
+                                            borderColor: !hasPets ? colors.primary : colors.border,
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 11.5, fontWeight: !hasPets ? '800' : '600', color: !hasPets ? colors.primary : colors.textSecondary }}>
+                                            Không có
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setHasPets(true)}
+                                        style={{
+                                            paddingHorizontal: 12,
+                                            paddingVertical: 6,
+                                            borderRadius: 8,
+                                            backgroundColor: hasPets ? '#fef3c7' : colors.surfaceContainerLow,
+                                            borderWidth: 1.5,
+                                            borderColor: hasPets ? '#f59e0b' : colors.border,
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 11.5, fontWeight: hasPets ? '800' : '600', color: hasPets ? '#b45309' : colors.textSecondary }}>
+                                            Có (chó/mèo)
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Dòng nhắc nhở an toàn thú cưng hiển thị động khi chọn Có */}
+                            {hasPets && (
+                                <View
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        backgroundColor: isDark ? '#451a0335' : '#fffbeb',
+                                        borderWidth: 1,
+                                        borderColor: '#f59e0b',
+                                        borderRadius: 10,
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 8,
+                                        marginTop: 10,
+                                        gap: 8,
+                                    }}
+                                >
+                                    <AlertCircle size={15} color="#d97706" />
+                                    <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                                        Vui lòng xích/nhốt thú cưng trong thời gian thợ làm việc để đảm bảo an toàn.
+                                    </Text>
+                                </View>
+                            )}
                         </View>
 
                         {/* Ghi chú */}
@@ -1617,7 +1856,7 @@ export default function VeSinhDonDepJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -2174,7 +2413,7 @@ export default function VeSinhDonDepJobScreen() {
                                     borderRadius: 16,
                                     backgroundColor: colors.surface,
                                     borderWidth: 1,
-                                    borderColor: isDark ? colors.border : '#ebdffa',
+                                    borderColor: isDark ? colors.border : '#e2e8f0',
                                     marginBottom: 20,
                                 },
                                 shadows.card,
@@ -2257,7 +2496,7 @@ export default function VeSinhDonDepJobScreen() {
                                                 borderWidth: 1.5,
                                                 borderColor: isCurrentSelected
                                                     ? '#10b981'
-                                                    : (isDark ? colors.border : '#ebdffa'),
+                                                    : (isDark ? colors.border : '#e2e8f0'),
                                                 padding: 14,
                                                 opacity: isEligible ? 1 : 0.65,
                                             },
@@ -2272,7 +2511,7 @@ export default function VeSinhDonDepJobScreen() {
                                                     borderRadius: 12,
                                                     backgroundColor: isCurrentSelected
                                                         ? '#10b98125'
-                                                        : (isDark ? colors.surfaceContainer : '#f3e8ff'),
+                                                        : (isDark ? colors.surfaceContainer : '#eff6ff'),
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                 }}

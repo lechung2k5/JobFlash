@@ -3,7 +3,21 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, MapPin, Radar, ShieldCheck, Navigation } from 'lucide-react-native';
+import {
+    ArrowLeft,
+    MapPin,
+    Radar,
+    ShieldCheck,
+    Navigation,
+    Truck,
+    Sparkles,
+    Package,
+    Wrench,
+    Utensils,
+    HeartHandshake,
+    Briefcase,
+    LayoutGrid,
+} from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction } from '../../services/goongService';
 import GoongMapCard from '../../components/GoongMapCard';
 import { useAppTheme } from '../../constants/theme';
@@ -17,14 +31,14 @@ export default function CreateJobScreen() {
     const { t, language } = useI18n();
 
     const categories = [
-        language === 'vi' ? 'Vận chuyển 🚚' : 'Delivery 🚚',
-        language === 'vi' ? 'Vệ sinh dọn dẹp 🧹' : 'Cleaning 🧹',
-        language === 'vi' ? 'Việc nặng 📦' : 'Heavy Lifting 📦',
-        language === 'vi' ? 'Sửa chữa 🔧' : 'Repair 🔧',
-        language === 'vi' ? 'Phục vụ 🍹' : 'Service 🍹',
-        language === 'vi' ? 'Chăm sóc 💖' : 'Care 💖',
-        language === 'vi' ? 'Chuyên môn 💻' : 'Professional 💻',
-        language === 'vi' ? 'Khác ✨' : 'Others ✨',
+        { label: language === 'vi' ? 'Vận chuyển' : 'Delivery', icon: Truck },
+        { label: language === 'vi' ? 'Vệ sinh dọn dẹp' : 'Cleaning', icon: Sparkles },
+        { label: language === 'vi' ? 'Việc nặng' : 'Heavy Lifting', icon: Package },
+        { label: language === 'vi' ? 'Sửa chữa' : 'Repair', icon: Wrench },
+        { label: language === 'vi' ? 'Phục vụ' : 'Service', icon: Utensils },
+        { label: language === 'vi' ? 'Chăm sóc' : 'Care', icon: HeartHandshake },
+        { label: language === 'vi' ? 'Chuyên môn' : 'Professional', icon: Briefcase },
+        { label: language === 'vi' ? 'Khác' : 'Others', icon: LayoutGrid },
     ];
 
     const [title, setTitle] = useState('');
@@ -156,33 +170,45 @@ export default function CreateJobScreen() {
                             {language === 'vi' ? 'Nhóm công việc' : 'Category'}
                         </Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
-                            {categories.map((cat, idx) => (
-                                <TouchableOpacity
-                                    key={idx}
-                                    activeOpacity={0.8}
-                                    onPress={() => setSelectedCat(idx)}
-                                    style={{
-                                        width: '48%',
-                                        padding: 14,
-                                        borderRadius: 16,
-                                        borderWidth: 1.5,
-                                        borderColor: selectedCat === idx ? colors.primary : colors.border,
-                                        backgroundColor: selectedCat === idx ? colors.surfaceContainer : colors.surface,
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    <Text
+                            {categories.map((cat, idx) => {
+                                const IconComp = cat.icon;
+                                const isSelected = selectedCat === idx;
+                                return (
+                                    <TouchableOpacity
+                                        key={idx}
+                                        activeOpacity={0.8}
+                                        onPress={() => setSelectedCat(idx)}
                                         style={{
-                                            fontSize: 13,
-                                            fontWeight: '700',
-                                            color: selectedCat === idx ? colors.primary : colors.text,
+                                            width: '48%',
+                                            paddingVertical: 12,
+                                            paddingHorizontal: 12,
+                                            borderRadius: 16,
+                                            borderWidth: 1.5,
+                                            borderColor: isSelected ? colors.primary : colors.border,
+                                            backgroundColor: isSelected ? colors.surfaceContainer : colors.surface,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            gap: 8,
                                         }}
                                     >
-                                        {cat}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                                        <IconComp
+                                            size={18}
+                                            color={isSelected ? colors.primary : colors.textSecondary}
+                                        />
+                                        <Text
+                                            numberOfLines={1}
+                                            style={{
+                                                fontSize: 12.5,
+                                                fontWeight: '700',
+                                                color: isSelected ? colors.primary : colors.text,
+                                                flex: 1,
+                                            }}
+                                        >
+                                            {cat.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
                     </View>
 
@@ -248,14 +274,16 @@ export default function CreateJobScreen() {
                                     paddingVertical: 12,
                                     borderRadius: 12,
                                     alignItems: 'center',
-                                    backgroundColor: wageType === 'package' ? colors.primary : 'transparent',
+                                    backgroundColor: wageType === 'package' ? colors.surface : 'transparent',
+                                    borderWidth: 1.5,
+                                    borderColor: wageType === 'package' ? colors.primary : 'transparent',
                                 }}
                             >
                                 <Text
                                     style={{
                                         fontSize: 13,
                                         fontWeight: '700',
-                                        color: wageType === 'package' ? colors.onPrimary : colors.textSecondary,
+                                        color: wageType === 'package' ? colors.primary : colors.textSecondary,
                                     }}
                                 >
                                     {t('requester.wagePackage')}
@@ -269,14 +297,16 @@ export default function CreateJobScreen() {
                                     paddingVertical: 12,
                                     borderRadius: 12,
                                     alignItems: 'center',
-                                    backgroundColor: wageType === 'hourly' ? colors.primary : 'transparent',
+                                    backgroundColor: wageType === 'hourly' ? colors.surface : 'transparent',
+                                    borderWidth: 1.5,
+                                    borderColor: wageType === 'hourly' ? colors.primary : 'transparent',
                                 }}
                             >
                                 <Text
                                     style={{
                                         fontSize: 13,
                                         fontWeight: '700',
-                                        color: wageType === 'hourly' ? colors.onPrimary : colors.textSecondary,
+                                        color: wageType === 'hourly' ? colors.primary : colors.textSecondary,
                                     }}
                                 >
                                     {t('requester.wageHourly')}

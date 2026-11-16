@@ -1,37 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-
-<defs>
-  <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#8B35FF"/>
-    <stop offset=".48" stop-color="#E52BCE"/>
-    <stop offset="1" stop-color="#FF263F"/>
-  </linearGradient>
-  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#25105D"/>
-    <stop offset="1" stop-color="#10142E"/>
-  </linearGradient>
-  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F7D8FF"/>
-    <stop offset=".45" stop-color="#A86BFF"/>
-    <stop offset="1" stop-color="#FF456E"/>
-  </linearGradient>
-  <linearGradient id="cargo" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#FF4BD8"/>
-    <stop offset="1" stop-color="#E91D42"/>
-  </linearGradient>
-  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur stdDeviation="3" result="b"/>
-    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-</defs>
-
-<g stroke="#180D3D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
-<circle cx="90" cy="386" r="39" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="90" cy="386" r="18.72" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="90" cy="386" r="3" fill="#FF5BE0"/><circle cx="260" cy="386" r="39" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="260" cy="386" r="18.72" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="260" cy="386" r="3" fill="#FF5BE0"/><circle cx="365" cy="386" r="39" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="365" cy="386" r="18.72" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="365" cy="386" r="3" fill="#FF5BE0"/><circle cx="430" cy="386" r="39" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="430" cy="386" r="18.72" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="430" cy="386" r="3" fill="#FF5BE0"/>
-<path d="M28 332 L28 264 Q28 224 69 224 L145 224 L184 276 L184 351 L28 351Z" fill="url(#body)"/>
-<path d="M69 240 L140 240 L167 280 L69 280Z" fill="url(#glass)" stroke="url(#metal)" stroke-width="5"/>
-<path d="M194 183 L481 183 L481 351 L194 351Z" fill="url(#cargo)" stroke="#F7C1FF" stroke-width="6"/>
-<path d="M204 199 L470 199 L470 329 L204 329Z" fill="url(#glass)" stroke="#C76BFF" stroke-width="5"/>
-<path d="M230 199 L230 329 M260 199 L260 329 M290 199 L290 329 M320 199 L320 329 M350 199 L350 329 M380 199 L380 329 M410 199 L410 329 M440 199 L440 329" stroke="#E84DFF" stroke-width="3"/>
-<path d="M39 300 L177 300 L177 342 L39 342Z" fill="url(#body)"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" fill="none">
+  <!-- Nền tròn pastel dịu mắt -->
+  <circle cx="40" cy="40" r="38" fill="#F0F9FF" stroke="#E0F2FE" stroke-width="1.5"/>
+  <!-- Thùng Container chở hàng trên sơ mi rơ moóc -->
+  <rect x="10" y="21" width="41" height="27" rx="1.5" fill="#0284C7" stroke="#0369A1" stroke-width="1.5"/>
+  <!-- Gân dập sóng Container dọc chuẩn logistics -->
+  <line x1="16" y1="23" x2="16" y2="46" stroke="#38BDF8" stroke-width="1"/>
+  <line x1="22" y1="23" x2="22" y2="46" stroke="#38BDF8" stroke-width="1"/>
+  <line x1="28" y1="23" x2="28" y2="46" stroke="#38BDF8" stroke-width="1"/>
+  <line x1="34" y1="23" x2="34" y2="46" stroke="#38BDF8" stroke-width="1"/>
+  <line x1="40" y1="23" x2="40" y2="46" stroke="#38BDF8" stroke-width="1"/>
+  <line x1="46" y1="23" x2="46" y2="46" stroke="#38BDF8" stroke-width="1"/>
+  <!-- Khớp nối mâm kéo -->
+  <rect x="50" y="44" width="4" height="4" fill="#0F172A"/>
+  <!-- Đầu kéo Container (Tractor) -->
+  <path d="M53 23 H62 C64.5 23 66.5 25 67.5 28 L70 36 V48 H53 Z" fill="#2563EB"/>
+  <!-- Ống xả thẳng đứng đặc trưng sau cabin -->
+  <rect x="52" y="18" width="2" height="12" rx="0.5" fill="#94A3B8"/>
+  <!-- Kính cabin -->
+  <path d="M56 25 H62 L66 34 H56 Z" fill="#BAE6FD"/>
+  <!-- Đèn & Cản bảo vệ -->
+  <rect x="68" y="41" width="3" height="5" rx="0.5" fill="#FDE047"/>
+  <!-- Hệ thống khung gầm nhiều trục -->
+  <rect x="8" y="48" width="63" height="3" fill="#0F172A"/>
+  <!-- 3 cụm bánh sau chịu tải nặng + 1 bánh trước lái -->
+  <circle cx="16" cy="53" r="6.5" fill="#334155"/>
+  <circle cx="16" cy="53" r="3" fill="#CBD5E1"/>
+  <circle cx="25" cy="53" r="6.5" fill="#334155"/>
+  <circle cx="25" cy="53" r="3" fill="#CBD5E1"/>
+  <circle cx="34" cy="53" r="6.5" fill="#334155"/>
+  <circle cx="34" cy="53" r="3" fill="#CBD5E1"/>
+  <circle cx="61" cy="53" r="6.5" fill="#334155"/>
+  <circle cx="61" cy="53" r="3" fill="#CBD5E1"/>
 </svg>

@@ -1,36 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-
-<defs>
-  <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#8B35FF"/>
-    <stop offset=".48" stop-color="#E52BCE"/>
-    <stop offset="1" stop-color="#FF263F"/>
-  </linearGradient>
-  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#25105D"/>
-    <stop offset="1" stop-color="#10142E"/>
-  </linearGradient>
-  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F7D8FF"/>
-    <stop offset=".45" stop-color="#A86BFF"/>
-    <stop offset="1" stop-color="#FF456E"/>
-  </linearGradient>
-  <linearGradient id="cargo" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#FF4BD8"/>
-    <stop offset="1" stop-color="#E91D42"/>
-  </linearGradient>
-  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur stdDeviation="3" result="b"/>
-    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-</defs>
-
-<g stroke="#180D3D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
-<circle cx="112" cy="384" r="42" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="112" cy="384" r="20.16" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="112" cy="384" r="3" fill="#FF5BE0"/><circle cx="320" cy="384" r="42" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="320" cy="384" r="20.16" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="320" cy="384" r="3" fill="#FF5BE0"/><circle cx="405" cy="384" r="42" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="405" cy="384" r="20.16" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="405" cy="384" r="3" fill="#FF5BE0"/>
-<path d="M38 331 L38 267 Q38 229 78 229 L164 229 L205 278 L205 350 L38 350Z" fill="url(#body)"/>
-<path d="M80 245 L158 245 L187 282 L80 282Z" fill="url(#glass)" stroke="url(#metal)" stroke-width="5"/>
-<path d="M212 190 L466 190 L466 350 L212 350Z" fill="url(#cargo)" stroke="#F7C1FF" stroke-width="6"/>
-<path d="M222 207 Q331 164 456 207 L456 282 L222 282Z" fill="url(#glass)" stroke="#C76BFF" stroke-width="5"/>
-<path d="M224 300 L455 300 M224 325 L455 325" stroke="#FF9BF1" stroke-width="4"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" fill="none">
+  <!-- Nền tròn pastel dịu mắt -->
+  <circle cx="40" cy="40" r="38" fill="#F0F9FF" stroke="#E0F2FE" stroke-width="1.5"/>
+  <!-- Thùng xe tải hạng nặng lớn -->
+  <rect x="12" y="22" width="40" height="26" rx="2" fill="#F8FAFC" stroke="#64748B" stroke-width="1.5"/>
+  <line x1="12" y1="31" x2="52" y2="31" stroke="#E2E8F0" stroke-width="1.5"/>
+  <line x1="12" y1="39" x2="52" y2="39" stroke="#E2E8F0" stroke-width="1.5"/>
+  <!-- Mui cabin cao có kính chắn nắng -->
+  <path d="M54 22 L63 26 H54 Z" fill="#1E40AF"/>
+  <path d="M54 26 H63 C65 26 67 28 68 31 L70 38 V48 H54 Z" fill="#1D4ED8"/>
+  <!-- Kính cabin lớn -->
+  <path d="M56 28 H63 L66 36 H56 Z" fill="#BAE6FD"/>
+  <!-- Ca lăng mạ & Đèn -->
+  <rect x="68" y="41" width="3" height="5" rx="0.5" fill="#FDE047"/>
+  <rect x="58" y="42" width="8" height="4" rx="0.5" fill="#94A3B8"/>
+  <!-- Khung gầm trục kép sau -->
+  <path d="M10 48 H16 C16 44 32 44 32 48 H52 C52 44 60 44 60 48 H71 V51 H10 Z" fill="#1E293B"/>
+  <!-- Bánh xe: Trục kép chịu tải sau + 1 bánh trước -->
+  <circle cx="20" cy="52" r="7.5" fill="#334155"/>
+  <circle cx="20" cy="52" r="3.5" fill="#CBD5E1"/>
+  <circle cx="28" cy="52" r="7.5" fill="#334155"/>
+  <circle cx="28" cy="52" r="3.5" fill="#CBD5E1"/>
+  <circle cx="56" cy="52" r="7.5" fill="#334155"/>
+  <circle cx="56" cy="52" r="3.5" fill="#CBD5E1"/>
 </svg>

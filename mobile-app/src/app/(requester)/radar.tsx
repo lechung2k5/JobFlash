@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -198,14 +198,52 @@ export default function RequesterRadarScreen() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: 8,
-                                marginBottom: 70,
                             },
                             shadows.card,
                         ]}
                     >
                         <Zap size={18} color="#ffffff" fill="#ffffff" />
                         <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>
-                            {language === 'vi' ? 'Mô phỏng: Đã đủ thợ nhận cuốc 🎉' : 'Demo: All workers confirmed 🎉'}
+                            {language === 'vi' ? 'Mô phỏng: Đã đủ thợ nhận cuốc' : 'Demo: All workers confirmed'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Nút Hủy tìm kiếm (Destructive Button - Section 3) */}
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => {
+                            Alert.alert(
+                                language === 'vi' ? 'Hủy tìm kiếm thợ' : 'Cancel Worker Search',
+                                language === 'vi'
+                                    ? 'Bạn có chắc chắn muốn hủy phiên quét radar tìm thợ này không?'
+                                    : 'Are you sure you want to cancel scanning for workers?',
+                                [
+                                    { text: language === 'vi' ? 'Không' : 'No', style: 'cancel' },
+                                    {
+                                        text: language === 'vi' ? 'Hủy tìm kiếm' : 'Cancel Search',
+                                        style: 'destructive',
+                                        onPress: () => router.replace('/(requester)'),
+                                    },
+                                ]
+                            );
+                        }}
+                        style={[
+                            {
+                                width: '100%',
+                                paddingVertical: 14,
+                                borderRadius: 16,
+                                backgroundColor: colors.surface,
+                                borderWidth: 1.5,
+                                borderColor: colors.error,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: 70,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <Text style={{ color: colors.error, fontSize: 14, fontWeight: '800' }}>
+                            {language === 'vi' ? 'HỦY TÌM KIẾM' : 'CANCEL SEARCH'}
                         </Text>
                     </TouchableOpacity>
                 </View>

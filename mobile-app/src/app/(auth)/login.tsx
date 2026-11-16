@@ -41,7 +41,7 @@ export default function LoginScreen() {
     }, [userRole]);
 
     // Refs để tự động nhảy con trỏ giữa 6 ô nhập mã
-    const inputRefs = useRef<(TextInput | null)[]>([]);
+    const inputRefs = useRef<any[]>([]);
 
     const handleSendOtp = async () => {
         const cleanPhone = phone.trim().replace(/\s+/g, '');
@@ -272,22 +272,27 @@ export default function LoginScreen() {
                                 activeOpacity={0.88}
                                 disabled={loading}
                                 onPress={handleSendOtp}
-                                style={[{ marginTop: 24, borderRadius: 16, overflow: 'hidden' }, shadows.electricGlow]}
+                                style={[
+                                    {
+                                        marginTop: 24,
+                                        borderRadius: 16,
+                                        backgroundColor: colors.surface,
+                                        borderWidth: 1.5,
+                                        borderColor: colors.primary,
+                                        paddingVertical: 16,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    },
+                                    shadows.card,
+                                ]}
                             >
-                                <LinearGradient
-                                    colors={gradients.electric}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={{ paddingVertical: 16, alignItems: 'center', borderRadius: 16 }}
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator color={colors.onPrimary} />
-                                    ) : (
-                                        <Text style={{ color: colors.onPrimary, fontWeight: '700', fontSize: 16 }}>
-                                            {t('auth.sendOtpBtn')}
-                                        </Text>
-                                    )}
-                                </LinearGradient>
+                                {loading ? (
+                                    <ActivityIndicator color={colors.primary} />
+                                ) : (
+                                    <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 16 }}>
+                                        {t('auth.sendOtpBtn')}
+                                    </Text>
+                                )}
                             </TouchableOpacity>
                         ) : (
                             <View style={{ marginTop: 24 }}>

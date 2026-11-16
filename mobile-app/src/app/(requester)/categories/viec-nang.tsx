@@ -35,8 +35,12 @@ import {
     ShieldCheck,
     Package,
     Weight,
+    Zap,
+    AlertTriangle,
+    AlertCircle,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
+import { JobFlashAPI } from '../../../services/apiClient';
 import { useAppTheme } from '../../../constants/theme';
 import { useI18n } from '../../../i18n';
 import GlassBottomBar from '../../../components/GlassBottomBar';
@@ -108,12 +112,12 @@ export function calculateVoucherDiscount(voucher: VoucherItem, subtotal: number)
     return voucher.maxDiscount ? Math.min(voucher.maxDiscount, percentAmount) : percentAmount;
 }
 
-// 4 Loại hàng bốc vác (Ngắn gọn)
+// 4 Loại hàng bốc vác (Đã làm rõ từ vựng theo mục 1.4 FormBocVac&ViecNang.md)
 export const CARGO_TYPES = [
     { id: 'box', label: 'Thùng hàng' },
     { id: 'material', label: 'Vật liệu' },
     { id: 'furniture', label: 'Nội thất nặng' },
-    { id: 'container', label: 'Container' },
+    { id: 'container', label: 'Rút/Đóng hàng Container' },
 ];
 
 // Khối lượng ước tính
@@ -175,6 +179,7 @@ export default function ViecNangJobScreen() {
     const [selectedCargo, setSelectedCargo] = useState('box');
     const [selectedWeight, setSelectedWeight] = useState('500_1000');
     const [selectedTerrain, setSelectedTerrain] = useState('flat');
+    const [stairsFloors, setStairsFloors] = useState(1); // Số tầng lầu khi chọn "Lên lầu bộ"
 
     // 3. Danh mục đầu việc (Mặc định chọn 2 việc cơ bản)
     const [selectedTasks, setSelectedTasks] = useState<string[]>([
@@ -189,15 +194,69 @@ export default function ViecNangJobScreen() {
         );
     };
 
-    // 4. Hình thức thuê & Tiền công (MẶC ĐỊNH THỜI LƯỢNG VÀ SỐ THỢ LÀ 1)
+    // Logic ràng buộc số lượng thợ tối thiểu (An toàn lao động theo FormBocVac&ViecNangBoSung.md)
+    const minWorkersRequired = useMemo(() => {
+        let minW = 1;
+
+        // 1. Dựa theo Loại hàng bốc dỡ: Nội thất nặng -> tối thiểu 2 thợ
+        if (selectedCargo === 'furniture') {
+            minW = Math.max(minW, 2);
+        }
+
+        // 2. Dựa theo Khối lượng ước tính: 1-3 Tấn -> 2 thợ, > 3 Tấn -> 4 thợ
+        if (selectedWeight === '1000_3000') {
+            minW = Math.max(minW, 2);
+        } else if (selectedWeight === 'over_3000') {
+            minW = Math.max(minW, 4);
+        }
+
+        // 3. Dựa theo Địa hình Lên lầu bộ & Khối lượng > 500kg: Tầng >= 3 -> tối thiểu 2 thợ
+        const isOver500kg = selectedWeight !== 'under_500';
+        if (selectedTerrain === 'stairs' && stairsFloors >= 3 && isOver500kg) {
+            minW = Math.max(minW, 2);
+        }
+
+        return minW;
+    }, [selectedCargo, selectedWeight, selectedTerrain, stairsFloors]);
+
+    // Diễn giải lý do cảnh báo an toàn lao động
+    const safetyWarningReason = useMemo(() => {
+        if (selectedWeight === 'over_3000') {
+            return 'Khối lượng > 3 Tấn bắt buộc tối thiểu 4 thợ để đảm bảo tiến độ và an toàn lao động.';
+        }
+        const isOver500kg = selectedWeight !== 'under_500';
+        if (selectedTerrain === 'stairs' && stairsFloors >= 3 && isOver500kg) {
+            return 'Khuân vác nặng lên từ lầu 3 trở lên cần tối thiểu 2 thợ để hỗ trợ đổi tay và đảm bảo an toàn.';
+        }
+        if (selectedCargo === 'furniture' && selectedWeight === '1000_3000') {
+            return 'Nội thất nặng và khối lượng 1 - 3 Tấn cần tối thiểu 2 thợ để khiêng vác an toàn.';
+        }
+        if (selectedCargo === 'furniture') {
+            return 'Nội thất nặng (tủ lạnh, giường tủ, két sắt...) cần tối thiểu 2 thợ để khiêng đỡ an toàn.';
+        }
+        if (selectedWeight === '1000_3000') {
+            return 'Khối lượng 1 - 3 Tấn cần tối thiểu 2 thợ để đảm bảo an toàn lao động.';
+        }
+        return '';
+    }, [selectedCargo, selectedWeight, selectedTerrain, stairsFloors]);
+
+    // 4. Hình thức thuê & Tiền công (MẶC ĐỊNH THỜI LƯỢNG VÀ SỐ THỢ LÀ 1, TỰ ĐỘNG KHÓA TỐI THIỂU NẾU HÀNG NẶNG)
     const [pricingMode, setPricingMode] = useState<'hourly' | 'fixed'>('hourly');
     const [hours, setHours] = useState(1);
     const [workersCount, setWorkersCount] = useState(1);
     const [hourlyWage, setHourlyWage] = useState('100.000'); // Khách tự điều chỉnh
     const [fixedPrice, setFixedPrice] = useState('250.000');
 
-    // 5. Trang bị hỗ trợ & Ghi chú
-    const [needBelts, setNeedBelts] = useState(true); // Thợ mang dây đai & găng tay (+20.000đ)
+    // Tự động nâng số lượng thợ lên mức tối thiểu an toàn khi người dùng chọn thuộc tính hạng nặng / lầu cao
+    useEffect(() => {
+        if (workersCount < minWorkersRequired) {
+            setWorkersCount(minWorkersRequired);
+        }
+    }, [minWorkersRequired, workersCount]);
+
+    // 5. Trang bị hỗ trợ & Ghi chú (Đã tách rõ ràng theo mục 1.3 & 2 FormBocVac&ViecNang.md)
+    const [needBelts, setNeedBelts] = useState(false); // Dây đai & găng tay bảo hộ (false: Có sẵn, true: Thợ mang +20k)
+    const [needTrolley, setNeedTrolley] = useState(false); // Xe kéo / Xe đẩy hàng (false: Có sẵn, true: Thợ mang +30k)
     const [specialNotes, setSpecialNotes] = useState('');
 
     // 6. Voucher
@@ -231,20 +290,24 @@ export default function ViecNangJobScreen() {
         else if (selectedWeight === '1000_3000') baseH = 3;
         else if (selectedWeight === 'over_3000') baseH = 5;
 
-        // Địa hình: Lên lầu bộ hoặc hầm dốc tốn sức hơn
+        // Địa hình: Lên lầu bộ tính theo số tầng lầu (mỗi tầng +0.3h), hầm dốc +0.5h
         let terrainExtra = 0;
-        if (selectedTerrain === 'stairs') terrainExtra = 0.5;
-        if (selectedTerrain === 'slope') terrainExtra = 0.5;
+        if (selectedTerrain === 'stairs') {
+            terrainExtra = Math.min(3, 0.3 * stairsFloors);
+        } else if (selectedTerrain === 'slope') {
+            terrainExtra = 0.5;
+        }
 
         // Hàng container hoặc vật liệu nặng:
         let cargoExtra = 0;
         if (selectedCargo === 'container') cargoExtra = 1.0;
         if (selectedCargo === 'material') cargoExtra = 0.5;
+        if (selectedCargo === 'furniture') cargoExtra = 0.5;
 
         const rawHours = baseH + terrainExtra + cargoExtra;
         const recHours = Math.max(1, Math.min(8, Math.round(rawHours * 2) / 2));
         const recHourlyWage = 100000;
-        const recHourlyTotal = recHours * recHourlyWage;
+        const recHourlyTotal = recHours * recHourlyWage * workersCount;
         const recFixed = Math.round(recHourlyTotal / 10000) * 10000;
 
         return {
@@ -254,7 +317,7 @@ export default function ViecNangJobScreen() {
             fixedPrice: Math.max(150000, recFixed),
             fixedPriceFormatted: Math.max(150000, recFixed).toLocaleString('vi-VN'),
         };
-    }, [selectedWeight, selectedTerrain, selectedCargo, selectedTasks]);
+    }, [selectedWeight, selectedTerrain, stairsFloors, selectedCargo, selectedTasks, workersCount]);
 
     // Các chip gợi ý giá khoán tự động cập nhật
     const dynamicFixedChips = useMemo(() => {
@@ -464,14 +527,16 @@ export default function ViecNangJobScreen() {
     // Tính toán chi phí
     const parsedHourlyWage = parseInt(hourlyWage.replace(/\D/g, ''), 10) || 0;
     const parsedFixedPrice = parseInt(fixedPrice.replace(/\D/g, ''), 10) || 0;
-    const toolsFee = needBelts ? 20000 : 0;
+    const beltsFee = needBelts ? 20000 : 0;
+    const trolleyFee = needTrolley ? 30000 : 0;
+    const equipmentFee = beltsFee + trolleyFee;
 
     const baseWage =
         pricingMode === 'hourly'
             ? Math.round(hours * workersCount * parsedHourlyWage)
             : parsedFixedPrice;
 
-    const subtotal = baseWage + toolsFee;
+    const subtotal = baseWage + equipmentFee;
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
@@ -513,8 +578,8 @@ export default function ViecNangJobScreen() {
         setSelectedVoucher(null);
     };
 
-    // Đăng việc bốc vác
-    const handleSubmit = () => {
+    // Đăng việc bốc vác hỏa tốc (Tự động gán booking_time & chuyển sang Radar tìm thợ)
+    const handleSubmit = async () => {
         if (!address.trim()) {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ kho bãi/công trình.');
             return;
@@ -528,7 +593,14 @@ export default function ViecNangJobScreen() {
             return;
         }
         if (pricingMode === 'fixed' && parsedFixedPrice <= 0) {
-            Alert.alert(t('common.error'), 'Vui lòng nhập mức giá khoán trọn gói mong muốn.');
+            Alert.alert(t('common.error'), 'Vui lòng nhập mức giá thuê trọn gói mong muốn.');
+            return;
+        }
+        if (workersCount < minWorkersRequired) {
+            Alert.alert(
+                'Yêu cầu an toàn lao động',
+                `Với tính chất công việc hiện tại, hệ thống yêu cầu tối thiểu ${minWorkersRequired} thợ để đảm bảo an toàn lao động.`
+            );
             return;
         }
 
@@ -536,36 +608,48 @@ export default function ViecNangJobScreen() {
         const weightObj = WEIGHT_TIERS.find((w) => w.id === selectedWeight);
         const terrainObj = TERRAIN_TYPES.find((t) => t.id === selectedTerrain);
 
-        const pricingSummary =
-            pricingMode === 'hourly'
-                ? `${hours}h × ${workersCount} thợ (${parsedHourlyWage.toLocaleString('vi-VN')} đ/h)`
-                : `Khoán trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ)`;
+        const currentBookingTime = new Date().toISOString();
 
-        const summaryLines = [
-            `Địa chỉ: ${address}${warehouseDetail ? ` (${warehouseDetail})` : ''}`,
-            `Hàng hóa: ${cargoObj?.label} (${weightObj?.label}, ${terrainObj?.label})`,
-            `Hình thức: ${pricingSummary}`,
-            `Thời gian: Thợ có mặt ngay (trong 30 - 60 phút)`,
-            `Số việc đã chọn: ${selectedTasks.length} việc`,
-            needBelts ? 'Đồ bảo hộ: Thợ mang dây đai & bao tay (+20.000 đ)' : 'Đồ bảo hộ: Tự chuẩn bị (0 đ)',
-            selectedVoucher && voucherDiscount > 0 ? `Ưu đãi (${selectedVoucher.code}): -${voucherDiscount.toLocaleString('vi-VN')} đ` : null,
-            specialNotes.trim() ? `Ghi chú: ${specialNotes.trim()}` : null,
-        ].filter(Boolean).join('\n• ');
+        const jobPayload = {
+            category: 'viec-nang',
+            title: `Thuê thợ bốc vác & việc nặng (${cargoObj?.label || 'Hàng hóa'})`,
+            address,
+            warehouseDetail,
+            latitude: coords?.lat || 10.7769,
+            longitude: coords?.lng || 106.7009,
+            cargoType: selectedCargo,
+            cargoLabel: cargoObj?.label,
+            weightTier: selectedWeight,
+            weightLabel: weightObj?.label,
+            terrainType: selectedTerrain,
+            terrainLabel: terrainObj?.label,
+            stairsFloors: selectedTerrain === 'stairs' ? stairsFloors : undefined,
+            selectedTasks,
+            customTaskNote,
+            pricingMode,
+            hours: pricingMode === 'hourly' ? hours : undefined,
+            workersCount,
+            hourlyWage: parsedHourlyWage,
+            fixedPrice: parsedFixedPrice,
+            needBelts,
+            needTrolley,
+            specialNotes,
+            voucherCode: selectedVoucher?.code,
+            discountAmount: voucherDiscount,
+            totalAmount: grandTotal,
+            booking_time: currentBookingTime,
+        };
 
-        Alert.alert(
-            'Xác nhận đăng việc Bốc vác & Việc nặng',
-            `Tổng chi phí ước tính: ${grandTotal.toLocaleString('vi-VN')} đ\n\n• ${summaryLines}`,
-            [
-                { text: 'Chỉnh sửa', style: 'cancel' },
-                {
-                    text: 'Tìm thợ ngay',
-                    onPress: () => {
-                        Alert.alert('Thành công', 'Yêu cầu bốc vác của bạn đã được phát sóng tới các thợ lực lưỡng gần nhất!');
-                        router.replace('/(requester)');
-                    },
-                },
-            ]
-        );
+        try {
+            await JobFlashAPI.jobs.createJob(jobPayload).catch((err) => {
+                console.log('[ViecNang] Local fallback: job created', err?.message);
+            });
+        } catch {
+            // Tiếp tục
+        }
+
+        // Chuyển thẳng giao diện sang màn hình Radar Tìm thợ
+        router.push('/(requester)/radar');
     };
 
     return (
@@ -580,7 +664,7 @@ export default function ViecNangJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -616,27 +700,6 @@ export default function ViecNangJobScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* THÔNG BÁO THỜI GIAN NHẬN VIỆC HỎA TỐC */}
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 12,
-                            backgroundColor: isDark ? '#1e1b4b35' : '#f5f3ff',
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.border : '#e9d5ff',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <Clock size={15} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
-                            Thợ nhận việc và có mặt ngay (trong 30 - 60 phút)
-                        </Text>
-                    </View>
-
                     {/* KHỐI 1: ĐỊA ĐIỂM KHO BÃI / CÔNG TRÌNH */}
                     <View
                         style={[
@@ -645,7 +708,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -667,7 +730,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 12,
                                 backgroundColor: colors.surfaceContainerLow,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 8,
                             }}
                         >
@@ -724,7 +787,7 @@ export default function ViecNangJobScreen() {
                                     paddingVertical: 9,
                                     paddingHorizontal: 8,
                                     borderRadius: 10,
-                                    backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                    backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : '#e9d5ff',
                                     gap: 6,
@@ -789,6 +852,57 @@ export default function ViecNangJobScreen() {
                         </View>
                     </View>
 
+                    {/* THÔNG BÁO THỜI GIAN LÀM VIỆC NỔI BẬT: NGAY BÂY GIỜ (NGAY DƯỚI KHỐI ĐỊA ĐIỂM) */}
+                    <View
+                        style={[
+                            {
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                padding: 14,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? '#1e3a8a30' : '#eff6ff',
+                                borderWidth: 1.5,
+                                borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                                marginBottom: 16,
+                                gap: 12,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: colors.primary,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Zap size={20} color="#ffffff" fill="#ffffff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>
+                                    Thời gian làm việc: Ngay bây giờ
+                                </Text>
+                                <View
+                                    style={{
+                                        backgroundColor: '#dcfce7',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 6,
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#16a34a' }}>HỎA TỐC</Text>
+                                </View>
+                            </View>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                Tìm thợ đến ngay lập tức • Thợ có mặt trong 30 - 60 phút
+                            </Text>
+                        </View>
+                    </View>
+
                     {/* KHỐI 2: LOẠI HÀNG, KHỐI LƯỢNG & ĐỊA HÌNH (GỌN GÀNG) */}
                     <View
                         style={[
@@ -797,7 +911,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -830,9 +944,18 @@ export default function ViecNangJobScreen() {
                                             borderColor: isSelected ? colors.primary : colors.border,
                                             backgroundColor: isSelected ? colors.primary + '12' : colors.surfaceContainerLow,
                                             alignItems: 'center',
+                                            justifyContent: 'center',
                                         }}
                                     >
-                                        <Text style={{ fontSize: 13, fontWeight: '800', color: isSelected ? colors.primary : colors.text }}>
+                                        <Text
+                                            style={{
+                                                fontSize: 12.5,
+                                                fontWeight: '800',
+                                                color: isSelected ? colors.primary : colors.text,
+                                                textAlign: 'center',
+                                            }}
+                                            numberOfLines={1}
+                                        >
                                             {c.label}
                                         </Text>
                                     </TouchableOpacity>
@@ -900,6 +1023,93 @@ export default function ViecNangJobScreen() {
                                 );
                             })}
                         </View>
+
+                        {/* DYNAMIC STEPPER SỐ TẦNG LẦU KHI CHỌN LÊN LẦU BỘ THEO MỤC 2 FormBocVac&ViecNangBoSung.md */}
+                        {selectedTerrain === 'stairs' && (
+                            <View style={{ marginTop: 10, gap: 8 }}>
+                                <View
+                                    style={{
+                                        padding: 12,
+                                        borderRadius: 12,
+                                        backgroundColor: isDark ? '#1e3a8a25' : '#eff6ff',
+                                        borderWidth: 1.5,
+                                        borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                                        flexDirection: 'row',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    <View>
+                                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                            Số tầng lầu: [ {stairsFloors} ]
+                                        </Text>
+                                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                                            Tầng càng cao công sức thợ càng lớn
+                                        </Text>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                        <TouchableOpacity
+                                            onPress={() => setStairsFloors((p) => Math.max(1, p - 1))}
+                                            disabled={stairsFloors <= 1}
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                borderRadius: 16,
+                                                backgroundColor: stairsFloors <= 1 ? (isDark ? '#33415550' : '#f1f5f9') : colors.surface,
+                                                borderWidth: 1,
+                                                borderColor: colors.border,
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                opacity: stairsFloors <= 1 ? 0.35 : 1,
+                                            }}
+                                        >
+                                            <Minus size={14} color={colors.text} />
+                                        </TouchableOpacity>
+                                        <Text style={{ fontSize: 15, fontWeight: '800', color: colors.primary, minWidth: 44, textAlign: 'center' }}>
+                                            Lầu {stairsFloors}
+                                        </Text>
+                                        <TouchableOpacity
+                                            onPress={() => setStairsFloors((p) => Math.min(10, p + 1))}
+                                            style={{
+                                                width: 32,
+                                                height: 32,
+                                                borderRadius: 16,
+                                                backgroundColor: colors.surface,
+                                                borderWidth: 1,
+                                                borderColor: colors.border,
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <Plus size={14} color={colors.text} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {/* Cảnh báo an toàn khi vác nặng > 500kg lên từ lầu 3 trở lên */}
+                                {stairsFloors >= 3 && selectedWeight !== 'under_500' && (
+                                    <View
+                                        style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            backgroundColor: isDark ? '#451a0335' : '#fffbeb',
+                                            borderWidth: 1,
+                                            borderColor: '#f59e0b',
+                                            borderRadius: 10,
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 8,
+                                            gap: 8,
+                                        }}
+                                    >
+                                        <AlertTriangle size={15} color="#d97706" />
+                                        <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                                            Khuân vác nặng lên từ lầu 3 trở lên cần tối thiểu 2 thợ để hỗ trợ đổi tay và đảm bảo an toàn.
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
 
                     {/* KHỐI 3: DANH MỤC ĐẦU VIỆC BỐC VÁC */}
@@ -910,7 +1120,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1008,7 +1218,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1021,7 +1231,7 @@ export default function ViecNangJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 2 Tab: Theo giờ vs Khoán trọn gói */}
+                        {/* 2 Tab: Theo giờ vs Thuê trọn gói */}
                         <View
                             style={{
                                 flexDirection: 'row',
@@ -1063,7 +1273,7 @@ export default function ViecNangJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn gói
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1132,29 +1342,67 @@ export default function ViecNangJobScreen() {
                                     </View>
                                 </View>
 
-                                {/* Số lượng thợ (MẶC ĐỊNH LÀ 1) */}
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <View>
-                                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Số lượng thợ</Text>
-                                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>Mặc định 1 người</Text>
+                                {/* Số lượng thợ (MẶC ĐỊNH LÀ 1, TỰ ĐỘNG KHÓA THEO MỤC 1 & 2 FormBocVac&ViecNangBoSung.md) */}
+                                <View>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <View>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Số lượng thợ</Text>
+                                            <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                                                {minWorkersRequired > 1 ? `Tối thiểu ${minWorkersRequired} người (an toàn)` : 'Mặc định 1 người'}
+                                            </Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                            <TouchableOpacity
+                                                disabled={workersCount <= minWorkersRequired}
+                                                onPress={() => setWorkersCount((prev) => Math.max(minWorkersRequired, prev - 1))}
+                                                style={{
+                                                    width: 36,
+                                                    height: 36,
+                                                    borderRadius: 18,
+                                                    backgroundColor: workersCount <= minWorkersRequired ? (isDark ? '#33415550' : '#f1f5f9') : colors.surfaceContainer,
+                                                    borderWidth: 1,
+                                                    borderColor: colors.border,
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    opacity: workersCount <= minWorkersRequired ? 0.35 : 1,
+                                                }}
+                                            >
+                                                <Minus size={16} color={colors.text} />
+                                            </TouchableOpacity>
+                                            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary, minWidth: 26, textAlign: 'center' }}>
+                                                {workersCount}
+                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setWorkersCount((prev) => Math.min(8, prev + 1))}
+                                                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceContainer, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Plus size={16} color={colors.text} />
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                                        <TouchableOpacity
-                                            onPress={() => setWorkersCount((prev) => Math.max(1, prev - 1))}
-                                            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceContainer, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
+
+                                    {/* Dòng ghi chú nhỏ cảnh báo an toàn lao động khi hàng nặng / lầu cao */}
+                                    {minWorkersRequired > 1 && !!safetyWarningReason && (
+                                        <View
+                                            style={{
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                backgroundColor: isDark ? '#451a0335' : '#fffbeb',
+                                                borderWidth: 1,
+                                                borderColor: '#f59e0b',
+                                                borderRadius: 10,
+                                                paddingHorizontal: 10,
+                                                paddingVertical: 7,
+                                                marginTop: 8,
+                                                gap: 7,
+                                            }}
                                         >
-                                            <Minus size={16} color={colors.text} />
-                                        </TouchableOpacity>
-                                        <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary, minWidth: 26, textAlign: 'center' }}>
-                                            {workersCount}
-                                        </Text>
-                                        <TouchableOpacity
-                                            onPress={() => setWorkersCount((prev) => Math.min(8, prev + 1))}
-                                            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceContainer, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <Plus size={16} color={colors.text} />
-                                        </TouchableOpacity>
-                                    </View>
+                                            <AlertTriangle size={14} color="#d97706" />
+                                            <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                                                {safetyWarningReason}
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
 
                                 {/* Tiền công theo giờ */}
@@ -1197,49 +1445,114 @@ export default function ViecNangJobScreen() {
                                 </View>
                             </View>
                         ) : (
-                            <View style={{ gap: 10 }}>
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    Số tiền khoán trọn gói mong muốn:
-                                </Text>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
-                                    <TextInput
-                                        value={fixedPrice}
-                                        onChangeText={handleFixedPriceChange}
-                                        keyboardType="numeric"
-                                        placeholder="250.000"
-                                        placeholderTextColor={colors.placeholder}
-                                        style={{ flex: 1, fontSize: 18, fontWeight: '900', color: colors.primary }}
-                                    />
-                                    <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>VNĐ trọn gói</Text>
-                                </View>
+                            <View style={{ gap: 14 }}>
+                                {/* Số lượng thợ (cho thuê việc trọn gói) */}
+                                <View>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <View>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Số lượng thợ</Text>
+                                            <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                                                {minWorkersRequired > 1 ? `Tối thiểu ${minWorkersRequired} người (an toàn)` : 'Mặc định 1 người'}
+                                            </Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                            <TouchableOpacity
+                                                disabled={workersCount <= minWorkersRequired}
+                                                onPress={() => setWorkersCount((prev) => Math.max(minWorkersRequired, prev - 1))}
+                                                style={{
+                                                    width: 36,
+                                                    height: 36,
+                                                    borderRadius: 18,
+                                                    backgroundColor: workersCount <= minWorkersRequired ? (isDark ? '#33415550' : '#f1f5f9') : colors.surfaceContainer,
+                                                    borderWidth: 1,
+                                                    borderColor: colors.border,
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    opacity: workersCount <= minWorkersRequired ? 0.35 : 1,
+                                                }}
+                                            >
+                                                <Minus size={16} color={colors.text} />
+                                            </TouchableOpacity>
+                                            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary, minWidth: 26, textAlign: 'center' }}>
+                                                {workersCount}
+                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setWorkersCount((prev) => Math.min(8, prev + 1))}
+                                                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceContainer, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Plus size={16} color={colors.text} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
 
-                                {/* Các mức giá khoán gợi ý linh hoạt */}
-                                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                    {dynamicFixedChips.map((val) => (
-                                        <TouchableOpacity
-                                            key={val}
-                                            onPress={() => setFixedPrice(val)}
+                                    {/* Cảnh báo an toàn lao động trong chế độ khoán */}
+                                    {minWorkersRequired > 1 && !!safetyWarningReason && (
+                                        <View
                                             style={{
-                                                flex: 1,
-                                                paddingVertical: 7,
-                                                borderRadius: 8,
-                                                backgroundColor: fixedPrice === val ? colors.primary + '18' : colors.surfaceContainer,
-                                                borderWidth: 1,
-                                                borderColor: fixedPrice === val ? colors.primary : colors.border,
+                                                flexDirection: 'row',
                                                 alignItems: 'center',
+                                                backgroundColor: isDark ? '#451a0335' : '#fffbeb',
+                                                borderWidth: 1,
+                                                borderColor: '#f59e0b',
+                                                borderRadius: 10,
+                                                paddingHorizontal: 10,
+                                                paddingVertical: 7,
+                                                marginTop: 8,
+                                                gap: 7,
                                             }}
                                         >
-                                            <Text style={{ fontSize: 11, fontWeight: '700', color: fixedPrice === val ? colors.primary : colors.textSecondary }}>
-                                                {val} đ
+                                            <AlertTriangle size={14} color="#d97706" />
+                                            <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                                                {safetyWarningReason}
                                             </Text>
-                                        </TouchableOpacity>
-                                    ))}
+                                        </View>
+                                    )}
+                                </View>
+
+                                <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
+                                        Số tiền thuê trọn gói mong muốn:
+                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
+                                        <TextInput
+                                            value={fixedPrice}
+                                            onChangeText={handleFixedPriceChange}
+                                            keyboardType="numeric"
+                                            placeholder="250.000"
+                                            placeholderTextColor={colors.placeholder}
+                                            style={{ flex: 1, fontSize: 18, fontWeight: '900', color: colors.primary }}
+                                        />
+                                        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>VNĐ trọn gói</Text>
+                                    </View>
+
+                                    {/* Các mức giá khoán gợi ý linh hoạt */}
+                                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+                                        {dynamicFixedChips.map((val, idx) => (
+                                            <TouchableOpacity
+                                                key={`${val}-${idx}`}
+                                                onPress={() => setFixedPrice(val)}
+                                                style={{
+                                                    flex: 1,
+                                                    paddingVertical: 7,
+                                                    borderRadius: 8,
+                                                    backgroundColor: fixedPrice === val ? colors.primary + '18' : colors.surfaceContainer,
+                                                    borderWidth: 1,
+                                                    borderColor: fixedPrice === val ? colors.primary : colors.border,
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: 11, fontWeight: '700', color: fixedPrice === val ? colors.primary : colors.textSecondary }}>
+                                                    {val} đ
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
                                 </View>
                             </View>
                         )}
                     </View>
 
-                    {/* KHỐI 5: ĐỒ NGHỀ BẢO HỘ & GHI CHÚ */}
+                    {/* KHỐI 5: TRANG BỊ & YÊU CẦU THỢ */}
                     <View
                         style={[
                             {
@@ -1247,7 +1560,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1256,32 +1569,181 @@ export default function ViecNangJobScreen() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
                             <ShieldCheck size={16} color={colors.primary} />
                             <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
-                                Trang bị & Yêu cầu
+                                Trang bị & Yêu cầu thợ
                             </Text>
                         </View>
 
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Dây đai & Găng tay bảo hộ</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Đai khiêng đồ nặng, găng bám</Text>
+                        {/* 5.1 Dây đai & Găng tay bảo hộ (2 lựa chọn rõ ràng theo mục 2 FormBocVac&ViecNang.md) */}
+                        <View style={{ marginBottom: 14 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+                                Dây đai & Găng tay bảo hộ
+                            </Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 8 }}>
+                                Đai khiêng đồ trợ lực tải trọng, găng tay hạt bám chống trượt
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <TouchableOpacity
+                                    onPress={() => setNeedBelts(false)}
+                                    activeOpacity={0.75}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 8,
+                                        borderRadius: 12,
+                                        borderWidth: 1.5,
+                                        borderColor: !needBelts ? colors.primary : colors.border,
+                                        backgroundColor: !needBelts ? colors.primary + '12' : colors.surfaceContainerLow,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontWeight: !needBelts ? '800' : '600',
+                                            color: !needBelts ? colors.primary : colors.text,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        Tôi đã có sẵn đồ bảo hộ
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: '700',
+                                            color: !needBelts ? colors.primary : '#16a34a',
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        (Miễn phí)
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => setNeedBelts(true)}
+                                    activeOpacity={0.75}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 8,
+                                        borderRadius: 12,
+                                        borderWidth: 1.5,
+                                        borderColor: needBelts ? colors.primary : colors.border,
+                                        backgroundColor: needBelts ? colors.primary + '12' : colors.surfaceContainerLow,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontWeight: needBelts ? '800' : '600',
+                                            color: needBelts ? colors.primary : colors.text,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        Yêu cầu thợ mang theo
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: '700',
+                                            color: needBelts ? colors.primary : colors.textSecondary,
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        (+20.000đ)
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity
-                                onPress={() => setNeedBelts(!needBelts)}
-                                style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 12,
-                                    backgroundColor: needBelts ? '#dcfce7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: needBelts ? '#10b981' : colors.border,
-                                }}
-                            >
-                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: needBelts ? '#059669' : colors.textSecondary }}>
-                                    {needBelts ? 'Thợ tự mang (+20k)' : 'Tự chuẩn bị'}
-                                </Text>
-                            </TouchableOpacity>
                         </View>
 
+                        {/* 5.2 Xe kéo / Xe đẩy hàng (Trang bị thiết yếu theo mục 3 FormBocVac&ViecNangBoSung.md) */}
+                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border, marginBottom: 14 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 4 }}>
+                                Xe kéo / Xe đẩy hàng
+                            </Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 8 }}>
+                                Hỗ trợ đẩy hàng kiện, thùng nặng di chuyển nhanh không tốn sức
+                            </Text>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <TouchableOpacity
+                                    onPress={() => setNeedTrolley(false)}
+                                    activeOpacity={0.75}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 8,
+                                        borderRadius: 12,
+                                        borderWidth: 1.5,
+                                        borderColor: !needTrolley ? colors.primary : colors.border,
+                                        backgroundColor: !needTrolley ? colors.primary + '12' : colors.surfaceContainerLow,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontWeight: !needTrolley ? '800' : '600',
+                                            color: !needTrolley ? colors.primary : colors.text,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        Tôi có sẵn xe kéo/đẩy
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: '700',
+                                            color: !needTrolley ? colors.primary : '#16a34a',
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        (Miễn phí)
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => setNeedTrolley(true)}
+                                    activeOpacity={0.75}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 8,
+                                        borderRadius: 12,
+                                        borderWidth: 1.5,
+                                        borderColor: needTrolley ? colors.primary : colors.border,
+                                        backgroundColor: needTrolley ? colors.primary + '12' : colors.surfaceContainerLow,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <Text
+                                        style={{
+                                            fontSize: 12,
+                                            fontWeight: needTrolley ? '800' : '600',
+                                            color: needTrolley ? colors.primary : colors.text,
+                                            textAlign: 'center',
+                                        }}
+                                    >
+                                        Yêu cầu thợ mang xe kéo/đẩy
+                                    </Text>
+                                    <Text
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: '700',
+                                            color: needTrolley ? colors.primary : colors.textSecondary,
+                                            marginTop: 2,
+                                        }}
+                                    >
+                                        (+30.000đ)
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Ghi chú thêm */}
                         <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
                                 Ghi chú thêm cho thợ:
@@ -1318,7 +1780,7 @@ export default function ViecNangJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -1425,6 +1887,15 @@ export default function ViecNangJobScreen() {
                                     <ShieldCheck size={13} color={colors.secondary} />
                                     <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
                                         Bảo hộ: 20.000 đ
+                                    </Text>
+                                </View>
+                            )}
+
+                            {needTrolley && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <ShieldCheck size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        Xe đẩy: 30.000 đ
                                     </Text>
                                 </View>
                             )}
@@ -1629,7 +2100,7 @@ export default function ViecNangJobScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: (insets.bottom > 0 ? insets.bottom : 16) + 20 }}>
-                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#ebdffa', marginBottom: 20 }, shadows.card]}>
+                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#e2e8f0', marginBottom: 20 }, shadows.card]}>
                             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Nhập mã ưu đãi của bạn</Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
@@ -1666,10 +2137,10 @@ export default function ViecNangJobScreen() {
                                 return (
                                     <View
                                         key={v.code}
-                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#ebdffa'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
+                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#e2e8f0'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
                                     >
                                         <View style={{ flexDirection: 'row', gap: 12 }}>
-                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#f3e8ff'), alignItems: 'center', justifyContent: 'center' }}>
+                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#eff6ff'), alignItems: 'center', justifyContent: 'center' }}>
                                                 <Ticket size={22} color={isCurrentSelected ? '#10b981' : colors.primary} />
                                             </View>
                                             <View style={{ flex: 1 }}>

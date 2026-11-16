@@ -1,36 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-
-<defs>
-  <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#8B35FF"/>
-    <stop offset=".48" stop-color="#E52BCE"/>
-    <stop offset="1" stop-color="#FF263F"/>
-  </linearGradient>
-  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#25105D"/>
-    <stop offset="1" stop-color="#10142E"/>
-  </linearGradient>
-  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#F7D8FF"/>
-    <stop offset=".45" stop-color="#A86BFF"/>
-    <stop offset="1" stop-color="#FF456E"/>
-  </linearGradient>
-  <linearGradient id="cargo" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#FF4BD8"/>
-    <stop offset="1" stop-color="#E91D42"/>
-  </linearGradient>
-  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-    <feGaussianBlur stdDeviation="3" result="b"/>
-    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-</defs>
-
-<g stroke="#180D3D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
-<circle cx="142" cy="377" r="45" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="142" cy="377" r="21.599999999999998" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="142" cy="377" r="3" fill="#FF5BE0"/><circle cx="370" cy="377" r="45" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="370" cy="377" r="21.599999999999998" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="370" cy="377" r="3" fill="#FF5BE0"/>
-<path d="M68 332 L68 258 Q68 226 100 226 L190 226 L230 276 L230 344 L68 344Z" fill="url(#body)"/>
-<path d="M104 242 L181 242 L210 280 L103 280Z" fill="url(#glass)" stroke="url(#metal)" stroke-width="5"/>
-<path d="M235 210 L420 210 L420 344 L235 344Z" fill="url(#cargo)" stroke="#F5B4FF" stroke-width="6"/>
-<path d="M252 229 L403 229 M252 257 L403 257 M252 285 L403 285 M252 313 L403 313" stroke="#FF9CF1" stroke-width="4" opacity=".8"/>
-<path d="M78 300 L220 300 L220 340 L78 340Z" fill="url(#body)"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" fill="none">
+  <!-- Nền tròn pastel dịu mắt -->
+  <circle cx="40" cy="40" r="38" fill="#F0F9FF" stroke="#E0F2FE" stroke-width="1.5"/>
+  <!-- Thùng xe tải nhỏ (gọn gàng, thùng kín/bạt) -->
+  <rect x="16" y="27" width="32" height="21" rx="2" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect x="20" y="32" width="10" height="8" rx="1" fill="#F59E0B" opacity="0.85"/>
+  <!-- Cabin xe tải nhỏ -->
+  <path d="M50 31 H60 C62 31 64 33 65 35 L67 40 C67.5 41.5 68 43 68 45 V48 H50 Z" fill="#2563EB"/>
+  <!-- Kính cabin -->
+  <path d="M52 33 H59 L63 39 H52 Z" fill="#BAE6FD"/>
+  <!-- Đèn & Cản trước -->
+  <rect x="66" y="43" width="3" height="3" rx="0.5" fill="#FDE047"/>
+  <!-- Khung gầm -->
+  <path d="M14 48 H20 C20 44 28 44 28 48 H50 C50 44 58 44 58 48 H69 V51 H14 Z" fill="#1E293B"/>
+  <!-- Bánh xe -->
+  <circle cx="24" cy="52" r="8" fill="#334155"/>
+  <circle cx="24" cy="52" r="4" fill="#CBD5E1"/>
+  <circle cx="24" cy="52" r="1.5" fill="#1E293B"/>
+  <circle cx="54" cy="52" r="8" fill="#334155"/>
+  <circle cx="54" cy="52" r="4" fill="#CBD5E1"/>
+  <circle cx="54" cy="52" r="1.5" fill="#1E293B"/>
 </svg>

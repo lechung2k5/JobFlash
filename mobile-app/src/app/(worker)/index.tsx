@@ -84,7 +84,7 @@ export default function WorkerHomeScreen() {
                                 <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '800' }} numberOfLines={1}>
                                     {currentUser?.fullName && currentUser.fullName !== 'Người dùng mới'
                                         ? currentUser.fullName
-                                        : (language === 'vi' ? 'Đối tác thợ' : 'Worker Partner')} ⚡
+                                        : (language === 'vi' ? 'Đối tác thợ' : 'Worker Partner')}
                                 </Text>
                             </View>
 
@@ -265,7 +265,7 @@ export default function WorkerHomeScreen() {
                                 >
                                     <BellRing size={18} color="#ffffff" />
                                     <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>
-                                        {language === 'vi' ? 'MÔ PHỎNG: CÓ VIỆC MỚI NỔ CHUÔNG 🔔' : 'SIMULATE: INCOMING JOB ALERT 🔔'}
+                                        {language === 'vi' ? 'MÔ PHỎNG: CÓ VIỆC MỚI NỔ CHUÔNG' : 'SIMULATE: INCOMING JOB ALERT'}
                                     </Text>
                                 </LinearGradient>
                             </TouchableOpacity>

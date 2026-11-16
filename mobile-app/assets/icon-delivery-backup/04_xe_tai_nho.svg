@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+
+<defs>
+  <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8B35FF"/>
+    <stop offset=".48" stop-color="#E52BCE"/>
+    <stop offset="1" stop-color="#FF263F"/>
+  </linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#25105D"/>
+    <stop offset="1" stop-color="#10142E"/>
+  </linearGradient>
+  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F7D8FF"/>
+    <stop offset=".45" stop-color="#A86BFF"/>
+    <stop offset="1" stop-color="#FF456E"/>
+  </linearGradient>
+  <linearGradient id="cargo" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FF4BD8"/>
+    <stop offset="1" stop-color="#E91D42"/>
+  </linearGradient>
+  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="3" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<g stroke="#180D3D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="142" cy="377" r="45" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="142" cy="377" r="21.599999999999998" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="142" cy="377" r="3" fill="#FF5BE0"/><circle cx="370" cy="377" r="45" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="370" cy="377" r="21.599999999999998" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="370" cy="377" r="3" fill="#FF5BE0"/>
+<path d="M68 332 L68 258 Q68 226 100 226 L190 226 L230 276 L230 344 L68 344Z" fill="url(#body)"/>
+<path d="M104 242 L181 242 L210 280 L103 280Z" fill="url(#glass)" stroke="url(#metal)" stroke-width="5"/>
+<path d="M235 210 L420 210 L420 344 L235 344Z" fill="url(#cargo)" stroke="#F5B4FF" stroke-width="6"/>
+<path d="M252 229 L403 229 M252 257 L403 257 M252 285 L403 285 M252 313 L403 313" stroke="#FF9CF1" stroke-width="4" opacity=".8"/>
+<path d="M78 300 L220 300 L220 340 L78 340Z" fill="url(#body)"/>
+</g>
+</svg>

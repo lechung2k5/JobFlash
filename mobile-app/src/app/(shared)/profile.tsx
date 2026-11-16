@@ -292,8 +292,8 @@ export default function ProfileScreen() {
                                         >
                                             <Text style={{ fontSize: 11, fontWeight: '800', color: isWorker ? colors.secondary : colors.primary }}>
                                                 {isWorker
-                                                    ? (language === 'vi' ? 'Đối tác Thợ ⚡' : 'Worker Partner ⚡')
-                                                    : (language === 'vi' ? 'Khách hàng 💼' : 'Customer 💼')}
+                                                    ? (language === 'vi' ? 'Đối tác Thợ' : 'Worker Partner')
+                                                    : (language === 'vi' ? 'Khách hàng' : 'Customer')}
                                             </Text>
                                         </View>
                                     </View>

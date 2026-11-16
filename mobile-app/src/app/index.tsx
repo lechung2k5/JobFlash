@@ -6,12 +6,16 @@ import {
     Animated,
     StyleSheet,
     TouchableOpacity,
-    useWindowDimensions
+    useWindowDimensions,
+    LogBox
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/useAuthStore';
 import { JobFlashAPI } from '../services/apiClient';
+
+// Tắt thông báo deprecation không ảnh hưởng tới trải nghiệm
+LogBox.ignoreLogs(['ImageBackground is deprecated']);
 
 const splashPoster = require('../../assets/images/splash-poster.png');
 
@@ -123,15 +127,15 @@ export default function SplashScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar style="light" translucent backgroundColor="transparent" />
+            <StatusBar style="light" />
 
             {/* Poster hình nền nghệ thuật JobFlash theo đúng thiết kế */}
             <TouchableOpacity
                 activeOpacity={0.98}
                 onPress={handleAppRouting}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
             >
-                <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: fadeAnim }]}>
+                <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
                     <ImageBackground
                         source={splashPoster}
                         style={styles.backgroundImage}
@@ -157,7 +161,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1b0735', // Gam màu tím thẫm hòa quyện liền mạch với poster
+        backgroundColor: '#0f172a',
     },
     backgroundImage: {
         width: '100%',

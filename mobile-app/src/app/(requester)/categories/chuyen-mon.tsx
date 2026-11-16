@@ -10,6 +10,7 @@ import {
     Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -35,6 +36,9 @@ import {
     Cpu,
     Hammer,
     ShieldCheck,
+    Zap,
+    Camera,
+    AlertTriangle,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
 import { useAppTheme } from '../../../constants/theme';
@@ -122,15 +126,46 @@ export const SKILL_TIERS = [
     { id: 'expert', label: 'Chuyên gia lâu năm' },
 ];
 
-// 6 Đầu việc chuyên môn kỹ thuật (Gọn gàng, full width, 1 dòng)
-export const TECH_TASKS = [
-    { id: 'lan_setup', label: 'Kéo dây mạng LAN, bấm đầu cáp, wifi' },
-    { id: 'cctv_install', label: 'Lắp camera an ninh, cài đặt xem từ xa' },
-    { id: 'wood_assembly', label: 'Lắp ráp giường, tủ áo, bàn ghế gỗ MDF' },
-    { id: 'iron_welding', label: 'Hàn cửa sắt, gia cố khung, bắn tôn dột' },
-    { id: 'wall_repair', label: 'Dặm vá sơn tường, trét bả matit láng mịn' },
-    { id: 'drilling_mount', label: 'Khoan tường treo kệ tủ, tivi, tranh nặng' },
+export interface TechTaskItem {
+    id: string;
+    label: string;
+    specialtyId: 'network' | 'furniture' | 'welding' | 'painting';
+}
+
+// Danh mục đầu việc kỹ thuật phân theo lĩnh vực (Mục 1 FormChuyenMon.md)
+export const ALL_TECH_TASKS: TechTaskItem[] = [
+    // 1. Mạng LAN & Camera (network)
+    { id: 'lan_pull', label: 'Kéo dây mạng LAN, luồn nẹp gen bảo vệ', specialtyId: 'network' },
+    { id: 'lan_crimp', label: 'Bấm đầu cáp RJ45, kiểm tra thông mạng test tín hiệu', specialtyId: 'network' },
+    { id: 'wifi_setup', label: 'Lắp đặt, cấu hình Router Wifi & bộ kích sóng', specialtyId: 'network' },
+    { id: 'cctv_install', label: 'Lắp camera an ninh (IP/Wifi), đi dây thẩm mỹ', specialtyId: 'network' },
+    { id: 'cctv_config', label: 'Cài đặt đầu ghi NVR/DVR, kết nối xem từ xa trên điện thoại', specialtyId: 'network' },
+    { id: 'rack_patch', label: 'Gom tủ rack mạng, patch panel & đánh số cổng mạng', specialtyId: 'network' },
+
+    // 2. Lắp ráp nội thất gỗ (furniture)
+    { id: 'wood_assembly', label: 'Lắp ráp giường ngủ, tủ áo, bàn ghế gỗ MDF/tự nhiên', specialtyId: 'furniture' },
+    { id: 'cabinet_mount', label: 'Khoan bắt tủ bếp, tủ tivi, kệ treo tường chịu lực', specialtyId: 'furniture' },
+    { id: 'hinge_repair', label: 'Cân chỉnh bản lề cánh tủ, thay ray trượt hộc kéo', specialtyId: 'furniture' },
+    { id: 'wood_disassemble', label: 'Tháo dỡ đồ gỗ nội thất, bảo quản dọn nhà', specialtyId: 'furniture' },
+    { id: 'wood_cut_adjust', label: 'Cắt gọt, bo cạnh, khoét lỗ ổ điện mặt bàn gỗ', specialtyId: 'furniture' },
+    { id: 'lock_install', label: 'Lắp khóa tủ bàn làm việc, tay nắm cửa gỗ', specialtyId: 'furniture' },
+
+    // 3. Cơ khí & Hàn xì (welding)
+    { id: 'iron_welding', label: 'Hàn cửa sắt, gia cố khung sắt, thay bản lề cổng', specialtyId: 'welding' },
+    { id: 'roof_welding', label: 'Hàn gia cố khung sắt mái che, bắn vít tôn chống dột', specialtyId: 'welding' },
+    { id: 'fence_stair', label: 'Hàn lan can, cầu thang sắt, chuồng cọp ban công', specialtyId: 'welding' },
+    { id: 'iron_cutting', label: 'Cắt kết cấu sắt cũ, mài phẳng mối hàn gỉ sét', specialtyId: 'welding' },
+    { id: 'lock_hasp', label: 'Hàn pát khóa chống trộm, gia cố bát khóa cửa sắt', specialtyId: 'welding' },
+
+    // 4. Sơn bả & Thạch cao (painting)
+    { id: 'wall_repair', label: 'Dặm vá tường nứt, trét bột bả matit láng mịn', specialtyId: 'painting' },
+    { id: 'ceiling_paint', label: 'Sơn mới trần nhà, tường phòng ngủ, phòng khách', specialtyId: 'painting' },
+    { id: 'waterproof_paint', label: 'Sơn lót kháng kiềm, lăn sơn chống thấm tường ngoài', specialtyId: 'painting' },
+    { id: 'drywall_patch', label: 'Vá lỗ khoét trần thạch cao, dán băng keo lưới mối nối', specialtyId: 'painting' },
+    { id: 'door_paint', label: 'Sơn dầu chống gỉ khung sắt, sơn bóng cửa gỗ', specialtyId: 'painting' },
 ];
+
+export const TECH_TASKS = ALL_TECH_TASKS;
 
 export default function ChuyenMonJobScreen() {
     const router = useRouter();
@@ -165,14 +200,119 @@ export default function ChuyenMonJobScreen() {
     const [selectedSpecialty, setSelectedSpecialty] = useState('network');
     const [selectedTier, setSelectedTier] = useState('standard');
 
-    // 3. Danh mục đầu việc (Mặc định chọn 1 việc)
-    const [selectedTasks, setSelectedTasks] = useState<string[]>(['lan_setup']);
+    // 3. Danh mục đầu việc lọc động theo lĩnh vực (Mục 1 FormChuyenMon.md)
+    const filteredTasks = useMemo(() => {
+        return ALL_TECH_TASKS.filter((task) => task.specialtyId === selectedSpecialty);
+    }, [selectedSpecialty]);
+
+    const [selectedTasks, setSelectedTasks] = useState<string[]>(['lan_pull']);
     const [customTaskDetail, setCustomTaskDetail] = useState('');
+
+    // Đính kèm hình ảnh / bản vẽ phác thảo (Mục 3 FormChuyenMon.md)
+    const [attachments, setAttachments] = useState<{ uri: string; type: 'image' }[]>([]);
+
+    // Tùy chọn phương án vật tư thi công (Mục 2 FormChuyenMon.md)
+    const [materialOption, setMaterialOption] = useState<'customer_has_materials' | 'worker_buy_materials'>('customer_has_materials');
+
+    // Tự động đồng bộ checklist khi đổi lĩnh vực kỹ thuật
+    useEffect(() => {
+        const validTaskIds = filteredTasks.map((t) => t.id);
+        const existing = selectedTasks.filter((id) => validTaskIds.includes(id));
+        if (existing.length > 0) {
+            setSelectedTasks(existing);
+        } else {
+            setSelectedTasks(validTaskIds.slice(0, 1));
+        }
+    }, [selectedSpecialty]);
 
     const toggleTask = (taskId: string) => {
         setSelectedTasks((prev) =>
             prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
         );
+    };
+
+    // Mô tả máy móc & đồ nghề linh hoạt theo lĩnh vực (Mục 4 FormChuyenMon.md)
+    const toolDescriptionBySpecialty = useMemo(() => {
+        switch (selectedSpecialty) {
+            case 'network':
+                return 'Kìm bấm cáp, máy test mạng, thang nhôm, máy khoan...';
+            case 'furniture':
+                return 'Máy vặn vít pin, cưa lọng, búa cao su, thước cân thủy...';
+            case 'welding':
+                return 'Máy hàn điện tử, mặt nạ hàn, máy cắt sắt, que hàn...';
+            case 'painting':
+                return 'Cọ lăn, khay sơn, bàn chà nhám, thang chữ A, bay trét...';
+            default:
+                return 'Máy móc & đồ nghề kỹ thuật chuyên dụng theo ngành';
+        }
+    }, [selectedSpecialty]);
+
+    // Media Picker Handlers cho bản vẽ / hình ảnh
+    const handleTakePhoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Cần cấp quyền', 'Vui lòng cho phép ứng dụng truy cập máy ảnh để chụp bản vẽ / hiện trạng.');
+                return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.7,
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setAttachments((prev) => [...prev, { uri: asset.uri, type: 'image' as const }].slice(0, 5));
+            }
+        } catch (err: any) {
+            Alert.alert('Lỗi', err?.message || 'Không thể chụp ảnh');
+        }
+    };
+
+    const handlePickFromLibrary = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Cần cấp quyền', 'Vui lòng cho phép ứng dụng truy cập thư viện ảnh để chọn bản vẽ / hình ảnh.');
+                return;
+            }
+            const remaining = 5 - attachments.length;
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsMultipleSelection: true,
+                selectionLimit: remaining,
+                quality: 0.7,
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const newItems = result.assets.map((asset) => ({
+                    uri: asset.uri,
+                    type: 'image' as const,
+                }));
+                setAttachments((prev) => [...prev, ...newItems].slice(0, 5));
+            }
+        } catch (err: any) {
+            Alert.alert('Lỗi', err?.message || 'Không thể chọn tệp từ thư viện.');
+        }
+    };
+
+    const handlePickMediaPrompt = () => {
+        if (attachments.length >= 5) {
+            Alert.alert('Đã đạt giới hạn', 'Bạn chỉ có thể đính kèm tối đa 5 hình ảnh hoặc bản vẽ.');
+            return;
+        }
+        Alert.alert(
+            'Đính kèm hình ảnh / bản vẽ',
+            'Chọn nguồn ảnh hiện trạng hoặc bản vẽ phác thảo để thợ kỹ thuật đánh giá:',
+            [
+                { text: 'Chụp ảnh ngay', onPress: handleTakePhoto },
+                { text: 'Chọn từ thư viện máy', onPress: handlePickFromLibrary },
+                { text: 'Hủy', style: 'cancel' },
+            ]
+        );
+    };
+
+    const handleRemoveAttachment = (index: number) => {
+        setAttachments((prev) => prev.filter((_, i) => i !== index));
     };
 
     // 4. Hình thức thuê & Mức thù lao (MẶC ĐỊNH THỜI LƯỢNG VÀ SỐ LƯỢNG LÀ 1)
@@ -224,7 +364,7 @@ export default function ChuyenMonJobScreen() {
         recH = Math.max(1, Math.round((recH + taskExtra) * 2) / 2);
 
         const recHourlyWageFormatted = baseWagePerHour.toLocaleString('vi-VN');
-        const recHourlyTotal = recH * baseWagePerHour;
+        const recHourlyTotal = recH * baseWagePerHour * workersCount;
         const recFixed = Math.round(recHourlyTotal / 10000) * 10000;
 
         return {
@@ -235,7 +375,7 @@ export default function ChuyenMonJobScreen() {
             fixedPrice: Math.max(200000, recFixed),
             fixedPriceFormatted: Math.max(200000, recFixed).toLocaleString('vi-VN'),
         };
-    }, [selectedSpecialty, selectedTier, selectedTasks]);
+    }, [selectedSpecialty, selectedTier, selectedTasks, workersCount]);
 
     // Các chip giá khoán gợi ý linh hoạt
     const dynamicFixedChips = useMemo(() => {
@@ -246,6 +386,16 @@ export default function ChuyenMonJobScreen() {
         const c4 = center + 150000;
         return [c1, c2, c3, c4].map((v) => v.toLocaleString('vi-VN'));
     }, [suggestedRecommendation.fixedPrice]);
+
+    // Các chip thù lao theo giờ gợi ý linh hoạt
+    const dynamicHourlyChips = useMemo(() => {
+        const center = suggestedRecommendation.hourlyWage;
+        const c1 = Math.max(70000, center - 20000);
+        const c2 = center;
+        const c3 = center + 20000;
+        const c4 = center + 40000;
+        return [c1, c2, c3, c4].map((v) => v.toLocaleString('vi-VN'));
+    }, [suggestedRecommendation.hourlyWage]);
 
     const handleApplySuggestedPrice = () => {
         if (pricingMode === 'hourly') {
@@ -504,20 +654,27 @@ export default function ChuyenMonJobScreen() {
 
         const specObj = SPECIALTIES.find((s) => s.id === selectedSpecialty);
         const tierObj = SKILL_TIERS.find((t) => t.id === selectedTier);
+        const materialLabel =
+            materialOption === 'customer_has_materials'
+                ? 'Khách đã có sẵn vật tư'
+                : 'Thợ khảo sát, báo giá & mua giúp';
 
         const pricingSummary =
             pricingMode === 'hourly'
                 ? `${hours}h × ${workersCount} thợ (${parsedHourlyWage.toLocaleString('vi-VN')} đ/h)`
-                : `Khoán trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ × ${workersCount} thợ)`;
+                : `Thuê trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ × ${workersCount} thợ)`;
 
         const summaryLines = [
             `Địa điểm: ${address}${siteDetail ? ` (${siteDetail})` : ''}`,
             `Lĩnh vực: ${specObj?.label} (${tierObj?.label})`,
             `Hình thức: ${pricingSummary}`,
             `Thời gian: Thợ nhận việc & có mặt ngay (trong 30 - 60 phút)`,
-            `Máy móc: ${workerBringsTools ? 'Thợ tự mang máy móc & đồ nghề (+30.000đ)' : 'Chủ nhà có sẵn thiết bị'}`,
+            `Máy móc: ${workerBringsTools ? 'Thợ tự mang đồ nghề (+30.000đ)' : 'Chủ nhà có sẵn thiết bị'}`,
+            `Phương án vật tư: ${materialLabel}`,
             `Số đầu việc: ${selectedTasks.length} việc`,
+            attachments.length > 0 ? `Đính kèm: ${attachments.length} ảnh/bản vẽ` : null,
             selectedVoucher && voucherDiscount > 0 ? `Ưu đãi (${selectedVoucher.code}): -${voucherDiscount.toLocaleString('vi-VN')} đ` : null,
+            customTaskDetail.trim() ? `Mô tả: ${customTaskDetail.trim()}` : null,
             specialNotes.trim() ? `Ghi chú: ${specialNotes.trim()}` : null,
         ].filter(Boolean).join('\n• ');
 
@@ -549,7 +706,7 @@ export default function ChuyenMonJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -585,27 +742,6 @@ export default function ChuyenMonJobScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* THÔNG BÁO THỜI GIAN NHẬN VIỆC HỎA TỐC */}
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 12,
-                            backgroundColor: isDark ? '#1e1b4b35' : '#f5f3ff',
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.border : '#e9d5ff',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <Clock size={15} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
-                            Thợ nhận việc và có mặt ngay (trong 30 - 60 phút)
-                        </Text>
-                    </View>
-
                     {/* KHỐI 1: ĐỊA ĐIỂM TRIỂN KHAI */}
                     <View
                         style={[
@@ -614,7 +750,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -636,7 +772,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 12,
                                 backgroundColor: colors.surfaceContainerLow,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 8,
                             }}
                         >
@@ -693,7 +829,7 @@ export default function ChuyenMonJobScreen() {
                                     paddingVertical: 9,
                                     paddingHorizontal: 8,
                                     borderRadius: 10,
-                                    backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                    backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : '#e9d5ff',
                                     gap: 6,
@@ -758,6 +894,57 @@ export default function ChuyenMonJobScreen() {
                         </View>
                     </View>
 
+                    {/* THÔNG BÁO THỜI GIAN LÀM VIỆC NỔI BẬT: NGAY BÂY GIỜ */}
+                    <View
+                        style={[
+                            {
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                padding: 14,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
+                                borderWidth: 1.5,
+                                borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                                marginBottom: 16,
+                                gap: 12,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 12,
+                                backgroundColor: colors.primary,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Zap size={20} color="#ffffff" fill="#ffffff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>
+                                    Thời gian làm việc: Ngay bây giờ
+                                </Text>
+                                <View
+                                    style={{
+                                        backgroundColor: '#dcfce7',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 6,
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#16a34a' }}>HỎA TỐC</Text>
+                                </View>
+                            </View>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                Tìm thợ kỹ thuật đến ngay lập tức • Có mặt trong 30 - 60 phút
+                            </Text>
+                        </View>
+                    </View>
+
                     {/* KHỐI 2: CHUYÊN NGÀNH & CẤP ĐỘ TAY NGHỀ */}
                     <View
                         style={[
@@ -766,7 +953,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -846,7 +1033,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -854,22 +1041,25 @@ export default function ChuyenMonJobScreen() {
                     >
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
-                                Đầu việc kỹ thuật ({selectedTasks.length})
+                                Đầu việc kỹ thuật ({selectedTasks.length}/{filteredTasks.length})
                             </Text>
                             <TouchableOpacity
                                 onPress={() => {
-                                    if (selectedTasks.length === TECH_TASKS.length) setSelectedTasks([]);
-                                    else setSelectedTasks(TECH_TASKS.map((t) => t.id));
+                                    if (selectedTasks.length === filteredTasks.length) {
+                                        setSelectedTasks([]);
+                                    } else {
+                                        setSelectedTasks(filteredTasks.map((t) => t.id));
+                                    }
                                 }}
                             >
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                                    {selectedTasks.length === TECH_TASKS.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                                    {selectedTasks.length === filteredTasks.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
                         <View style={{ gap: 7, marginTop: 4 }}>
-                            {TECH_TASKS.map((item) => {
+                            {filteredTasks.map((item) => {
                                 const isChecked = selectedTasks.includes(item.id);
                                 return (
                                     <TouchableOpacity
@@ -934,6 +1124,94 @@ export default function ChuyenMonJobScreen() {
                                 }}
                             />
                         </View>
+
+                        {/* ĐÍNH KÈM HÌNH ẢNH / BẢN VẼ */}
+                        <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                    Đính kèm bản vẽ / hình ảnh ({attachments.length}/5):
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={handlePickMediaPrompt}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 4,
+                                        borderRadius: 8,
+                                        backgroundColor: colors.primary + '15',
+                                    }}
+                                >
+                                    <Camera size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
+                                        + Thêm ảnh
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {attachments.length > 0 && (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                                    {attachments.map((att, idx) => (
+                                        <View
+                                            key={`${att.uri}-${idx}`}
+                                            style={{
+                                                width: 72,
+                                                height: 72,
+                                                borderRadius: 10,
+                                                overflow: 'hidden',
+                                                borderWidth: 1,
+                                                borderColor: colors.border,
+                                                position: 'relative',
+                                            }}
+                                        >
+                                            <Image source={{ uri: att.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                                            <TouchableOpacity
+                                                onPress={() => handleRemoveAttachment(idx)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 3,
+                                                    right: 3,
+                                                    width: 20,
+                                                    height: 20,
+                                                    borderRadius: 10,
+                                                    backgroundColor: 'rgba(0,0,0,0.65)',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <X size={12} color="#ffffff" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            )}
+
+                            {attachments.length === 0 && (
+                                <TouchableOpacity
+                                    onPress={handlePickMediaPrompt}
+                                    activeOpacity={0.7}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 12,
+                                        borderRadius: 10,
+                                        borderWidth: 1,
+                                        borderStyle: 'dashed',
+                                        borderColor: colors.primary,
+                                        backgroundColor: colors.primary + '08',
+                                    }}
+                                >
+                                    <Camera size={16} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+                                        Đính kèm hình ảnh / Bản vẽ phác thảo (Tùy chọn)
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
 
                     {/* KHỐI 4: HÌNH THỨC THUÊ & GỢI Ý MỨC TIỀN HỢP LÝ */}
@@ -944,7 +1222,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -957,7 +1235,7 @@ export default function ChuyenMonJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 2 Tab: Khoán trọn gói vs Theo giờ */}
+                        {/* 2 Tab: Thuê trọn gói vs Theo giờ */}
                         <View
                             style={{
                                 flexDirection: 'row',
@@ -982,7 +1260,7 @@ export default function ChuyenMonJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn gói
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
 
@@ -1068,7 +1346,7 @@ export default function ChuyenMonJobScreen() {
                                 </View>
 
                                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 4 }}>
-                                    Tiền công khoán trọn gói (VNĐ / thợ):
+                                    Tiền công thuê trọn gói (VNĐ / thợ):
                                 </Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
                                     <TextInput
@@ -1084,9 +1362,9 @@ export default function ChuyenMonJobScreen() {
 
                                 {/* Các chip giá khoán gợi ý linh hoạt */}
                                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                    {dynamicFixedChips.map((val) => (
+                                    {dynamicFixedChips.map((val, idx) => (
                                         <TouchableOpacity
-                                            key={val}
+                                            key={`${val}-${idx}`}
                                             onPress={() => setFixedPrice(val)}
                                             style={{
                                                 flex: 1,
@@ -1172,9 +1450,9 @@ export default function ChuyenMonJobScreen() {
                                     </View>
 
                                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                                        {['100.000', '120.000', '150.000', '180.000'].map((val) => (
+                                        {dynamicHourlyChips.map((val, idx) => (
                                             <TouchableOpacity
-                                                key={val}
+                                                key={`${val}-${idx}`}
                                                 onPress={() => setHourlyWage(val)}
                                                 style={{
                                                     flex: 1,
@@ -1205,7 +1483,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1221,7 +1499,7 @@ export default function ChuyenMonJobScreen() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                             <View style={{ flex: 1, paddingRight: 8 }}>
                                 <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Thợ mang trọn gói đồ nghề</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Máy khoan bê tông, máy hàn, kìm bấm mạng, thang nhôm</Text>
+                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>{toolDescriptionBySpecialty}</Text>
                             </View>
                             <TouchableOpacity
                                 onPress={() => setWorkerBringsTools(!workerBringsTools)}
@@ -1266,6 +1544,108 @@ export default function ChuyenMonJobScreen() {
                         </View>
                     </View>
 
+                    {/* KHỐI VẬT TƯ & LINH KIỆN THI CÔNG */}
+                    <View
+                        style={[
+                            {
+                                padding: 16,
+                                borderRadius: 20,
+                                backgroundColor: colors.surface,
+                                borderWidth: 1,
+                                borderColor: isDark ? colors.border : '#e2e8f0',
+                                marginBottom: 16,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                            <Cpu size={16} color={colors.primary} />
+                            <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
+                                Phương án vật tư & Linh kiện thi công
+                            </Text>
+                        </View>
+
+                        <View style={{ gap: 8 }}>
+                            <TouchableOpacity
+                                onPress={() => setMaterialOption('customer_has_materials')}
+                                activeOpacity={0.7}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 12,
+                                    borderRadius: 12,
+                                    backgroundColor: materialOption === 'customer_has_materials' ? colors.primary + '12' : colors.surfaceContainerLow,
+                                    borderWidth: 1.5,
+                                    borderColor: materialOption === 'customer_has_materials' ? colors.primary : colors.border,
+                                    gap: 10,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: 9,
+                                        borderWidth: 2,
+                                        borderColor: materialOption === 'customer_has_materials' ? colors.primary : colors.textSecondary,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {materialOption === 'customer_has_materials' && (
+                                        <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.primary }} />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                        Khách đã chuẩn bị sẵn vật tư
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                        Chủ nhà có sẵn vật tư (dây mạng, ốc vít, bản lề, que hàn, bột bả...)
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => setMaterialOption('worker_buy_materials')}
+                                activeOpacity={0.7}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 12,
+                                    borderRadius: 12,
+                                    backgroundColor: materialOption === 'worker_buy_materials' ? colors.primary + '12' : colors.surfaceContainerLow,
+                                    borderWidth: 1.5,
+                                    borderColor: materialOption === 'worker_buy_materials' ? colors.primary : colors.border,
+                                    gap: 10,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: 9,
+                                        borderWidth: 2,
+                                        borderColor: materialOption === 'worker_buy_materials' ? colors.primary : colors.textSecondary,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {materialOption === 'worker_buy_materials' && (
+                                        <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.primary }} />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                        Thợ khảo sát, báo giá & mua giúp
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                        Thợ khảo sát khối lượng, mua vật tư hộ và nghiệm thu theo hóa đơn thực tế
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
                     {/* KHỐI ƯU ĐÃI VOUCHER */}
                     <TouchableOpacity
                         activeOpacity={0.8}
@@ -1276,7 +1656,7 @@ export default function ChuyenMonJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -1395,6 +1775,27 @@ export default function ChuyenMonJobScreen() {
                                     </Text>
                                 </View>
                             )}
+                        </View>
+
+                        {/* Lưu ý chi phí vật tư */}
+                        <View
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 6,
+                                marginTop: 12,
+                                paddingVertical: 8,
+                                paddingHorizontal: 10,
+                                borderRadius: 10,
+                                backgroundColor: isDark ? '#78350f25' : '#fffbeb',
+                                borderWidth: 1,
+                                borderColor: isDark ? '#b45309' : '#fef3c7',
+                            }}
+                        >
+                            <AlertTriangle size={14} color="#d97706" />
+                            <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1 }}>
+                                Lưu ý: Tiền công chưa bao gồm chi phí vật tư, linh kiện thay thế/thi công.
+                            </Text>
                         </View>
 
                         <TouchableOpacity
@@ -1587,7 +1988,7 @@ export default function ChuyenMonJobScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: (insets.bottom > 0 ? insets.bottom : 16) + 20 }}>
-                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#ebdffa', marginBottom: 20 }, shadows.card]}>
+                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#e2e8f0', marginBottom: 20 }, shadows.card]}>
                             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Nhập mã ưu đãi của bạn</Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
@@ -1624,10 +2025,10 @@ export default function ChuyenMonJobScreen() {
                                 return (
                                     <View
                                         key={v.code}
-                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#ebdffa'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
+                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#e2e8f0'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
                                     >
                                         <View style={{ flexDirection: 'row', gap: 12 }}>
-                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#f3e8ff'), alignItems: 'center', justifyContent: 'center' }}>
+                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#eff6ff'), alignItems: 'center', justifyContent: 'center' }}>
                                                 <Ticket size={22} color={isCurrentSelected ? '#10b981' : colors.primary} />
                                             </View>
                                             <View style={{ flex: 1 }}>

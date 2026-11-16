@@ -105,7 +105,7 @@ export default function InAppCallScreen() {
                 {/* Header Info */}
                 <View style={{ alignItems: 'center', gap: 8 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 9999, backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                        <ShieldCheck size={14} color="#a855f7" />
+                        <ShieldCheck size={14} color="#60a5fa" />
                         <Text style={{ color: '#e2e8f0', fontSize: 11, fontWeight: '700' }}>
                             Cuộc gọi miễn phí qua Internet (VoIP)
                         </Text>
@@ -130,7 +130,7 @@ export default function InAppCallScreen() {
                             width: 200,
                             height: 200,
                             borderRadius: 100,
-                            backgroundColor: 'rgba(111, 0, 197, 0.15)',
+                            backgroundColor: 'rgba(37, 99, 235, 0.15)',
                             transform: [{ scale: waveAnim1 }],
                         }}
                     />
@@ -140,13 +140,13 @@ export default function InAppCallScreen() {
                             width: 160,
                             height: 160,
                             borderRadius: 80,
-                            backgroundColor: 'rgba(223, 24, 117, 0.2)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
                             transform: [{ scale: waveAnim2 }],
                         }}
                     />
 
                     <LinearGradient
-                        colors={['#6f00c5', '#df1875']}
+                        colors={['#1d4ed8', '#2563eb']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={{ width: 110, height: 110, borderRadius: 55, padding: 3, justifyContent: 'center', alignItems: 'center' }}
@@ -159,7 +159,7 @@ export default function InAppCallScreen() {
 
                 {/* Call Control Buttons */}
                 <View style={{ width: '100%', gap: 24, alignItems: 'center' }}>
-                    {/* Tùy chọn chuyển sang gọi SIM di động */}
+                    {/* Tùy chọn chuyển sang gọi SIM di động (Text Button - Section 4) */}
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleSwitchToCellular}
@@ -169,21 +169,18 @@ export default function InAppCallScreen() {
                             gap: 8,
                             paddingHorizontal: 16,
                             paddingVertical: 10,
-                            borderRadius: 9999,
-                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255, 255, 255, 0.15)',
+                            backgroundColor: 'transparent',
                         }}
                     >
-                        <PhoneForwarded size={16} color="#38bdf8" />
-                        <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '700' }}>
+                        <PhoneForwarded size={16} color="#60a5fa" />
+                        <Text style={{ color: '#60a5fa', fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' }}>
                             Mạng yếu? Chuyển sang gọi SĐT thường ({partnerPhone})
                         </Text>
                     </TouchableOpacity>
 
                     {/* Hàng nút Mic, Loa, Ngắt cuộc gọi */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', width: '100%', paddingHorizontal: 20 }}>
-                        {/* Nút Mute Mic */}
+                        {/* Nút Mute Mic (Toggle - Section 5) */}
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={() => setIsMuted(!isMuted)}
@@ -191,15 +188,17 @@ export default function InAppCallScreen() {
                                 width: 56,
                                 height: 56,
                                 borderRadius: 28,
-                                backgroundColor: isMuted ? '#ffffff' : 'rgba(255, 255, 255, 0.15)',
+                                backgroundColor: isMuted ? '#eff6ff' : 'rgba(255, 255, 255, 0.12)',
+                                borderWidth: 1.5,
+                                borderColor: isMuted ? '#2563eb' : 'rgba(255, 255, 255, 0.2)',
                                 justifyContent: 'center',
                                 alignItems: 'center',
                             }}
                         >
-                            {isMuted ? <MicOff size={24} color="#0f172a" /> : <Mic size={24} color="#ffffff" />}
+                            {isMuted ? <MicOff size={24} color="#2563eb" /> : <Mic size={24} color="#ffffff" />}
                         </TouchableOpacity>
 
-                        {/* Nút Ngắt cuộc gọi (Đỏ to) */}
+                        {/* Nút Ngắt cuộc gọi (Destructive Button - Section 3) */}
                         <TouchableOpacity
                             activeOpacity={0.9}
                             onPress={handleEndCall}
@@ -207,10 +206,10 @@ export default function InAppCallScreen() {
                                 width: 72,
                                 height: 72,
                                 borderRadius: 36,
-                                backgroundColor: '#e11d48',
+                                backgroundColor: '#ef4444',
                                 justifyContent: 'center',
                                 alignItems: 'center',
-                                shadowColor: '#e11d48',
+                                shadowColor: '#ef4444',
                                 shadowOffset: { width: 0, height: 6 },
                                 shadowOpacity: 0.5,
                                 shadowRadius: 16,
@@ -220,7 +219,7 @@ export default function InAppCallScreen() {
                             <PhoneOff size={32} color="#ffffff" />
                         </TouchableOpacity>
 
-                        {/* Nút Bật Loa Ngoài */}
+                        {/* Nút Bật Loa Ngoài (Toggle - Section 5) */}
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={() => setIsSpeaker(!isSpeaker)}
@@ -228,12 +227,14 @@ export default function InAppCallScreen() {
                                 width: 56,
                                 height: 56,
                                 borderRadius: 28,
-                                backgroundColor: isSpeaker ? '#ffffff' : 'rgba(255, 255, 255, 0.15)',
+                                backgroundColor: isSpeaker ? '#eff6ff' : 'rgba(255, 255, 255, 0.12)',
+                                borderWidth: 1.5,
+                                borderColor: isSpeaker ? '#2563eb' : 'rgba(255, 255, 255, 0.2)',
                                 justifyContent: 'center',
                                 alignItems: 'center',
                             }}
                         >
-                            {isSpeaker ? <Volume2 size={24} color="#0f172a" /> : <VolumeX size={24} color="#ffffff" />}
+                            {isSpeaker ? <Volume2 size={24} color="#2563eb" /> : <VolumeX size={24} color="#ffffff" />}
                         </TouchableOpacity>
                     </View>
                 </View>

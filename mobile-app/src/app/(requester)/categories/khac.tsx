@@ -35,6 +35,9 @@ import {
     Users,
     Layers,
     FileText,
+    Zap,
+    ShieldAlert,
+    Truck,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
 import { useAppTheme } from '../../../constants/theme';
@@ -123,13 +126,78 @@ export const EFFORT_LEVELS = [
     { id: 'heavy', label: 'Cần thể lực tốt' },
 ];
 
-// 5 Gợi ý đầu việc nhanh (Gọn gàng, full width, 1 dòng)
-export const QUICK_TASKS = [
-    { id: 'queue_ticket', label: 'Xếp hàng mua vé, lấy số thứ tự, nhận đồ' },
-    { id: 'distribute_flyer', label: 'Phát tờ rơi tận nơi, phát tại ngã tư' },
-    { id: 'warehouse_clean', label: 'Phụ dọn dẹp kho bãi, sắp xếp bao bì hàng' },
-    { id: 'store_watch', label: 'Trông coi cửa hàng, hỗ trợ dắt xe tạm thời' },
-    { id: 'errands_buy', label: 'Chạy việc vặt, mua sắm đồ đạc theo yêu cầu' },
+export interface QuickTaskItem {
+    id: string;
+    label: string;
+    taskTypeId: 'chores' | 'queue' | 'flyer' | 'helper';
+}
+
+// Danh mục đầu việc nhanh phân loại động (Mục 1 FormCongViecLinhHoatKhac.md)
+export const ALL_QUICK_TASKS: QuickTaskItem[] = [
+    // 1. Việc vặt gia đình (chores)
+    { id: 'chores_errands', label: 'Chạy việc vặt, mua sắm đồ đạc/thuốc men theo yêu cầu', taskTypeId: 'chores' },
+    { id: 'chores_trash', label: 'Dọn rác cồng kềnh, phân loại gom đồ cũ trong nhà', taskTypeId: 'chores' },
+    { id: 'chores_pet', label: 'Chăm sóc/dắt thú cưng đi dạo, cho thú cưng ăn', taskTypeId: 'chores' },
+    { id: 'chores_plants', label: 'Tưới cây cảnh, tỉa cành, dọn dẹp ban công & sân vườn', taskTypeId: 'chores' },
+    { id: 'chores_housewatch', label: 'Trông coi nhà cửa, nhận hàng bưu phẩm hộ trong ngày', taskTypeId: 'chores' },
+
+    // 2. Xếp hàng giữ chỗ (queue)
+    { id: 'queue_ticket', label: 'Xếp hàng mua vé xem phim, vé tàu xe, sự kiện âm nhạc', taskTypeId: 'queue' },
+    { id: 'queue_hospital', label: 'Xếp hàng lấy số thứ tự khám bệnh tại bệnh viện', taskTypeId: 'queue' },
+    { id: 'queue_public_office', label: 'Xếp hàng nộp hồ sơ, giấy tờ tại cơ quan hành chính/công chứng', taskTypeId: 'queue' },
+    { id: 'queue_shop', label: 'Xếp hàng mua đồ săn sale, đồ ăn thức uống hot trend', taskTypeId: 'queue' },
+    { id: 'queue_seat', label: 'Giữ chỗ ngồi bàn tiệc, quán cà phê hoặc hội trường', taskTypeId: 'queue' },
+
+    // 3. Phát tờ rơi / Biển (flyer)
+    { id: 'flyer_junction', label: 'Phát tờ rơi tại các ngã tư, nút giao đèn tín hiệu giao thông', taskTypeId: 'flyer' },
+    { id: 'flyer_door', label: 'Phát tờ rơi tận nhà dân, kẹp cửa khu dân cư/chung cư', taskTypeId: 'flyer' },
+    { id: 'flyer_school', label: 'Phát tờ rơi trước cổng trường học, tòa nhà văn phòng', taskTypeId: 'flyer' },
+    { id: 'flyer_standee', label: 'Đứng cầm biển quảng cáo standee, PG/PB hoạt náo', taskTypeId: 'flyer' },
+    { id: 'flyer_poster', label: 'Dán poster, treo băng rôn thông báo được cấp phép', taskTypeId: 'flyer' },
+
+    // 4. Phụ kho / Sự kiện (helper)
+    { id: 'helper_warehouse_clean', label: 'Phụ dọn dẹp kho bãi, quét dọn gom bao bì phế liệu', taskTypeId: 'helper' },
+    { id: 'helper_pack', label: 'Đóng gói hàng hóa, bọc màng PE, dán tem nhãn chuyển phát', taskTypeId: 'helper' },
+    { id: 'helper_count', label: 'Hỗ trợ kiểm đếm số lượng hàng hóa, quét mã vạch kho', taskTypeId: 'helper' },
+    { id: 'helper_event_setup', label: 'Phụ dựng rạp, sắp xếp bàn ghế, setup sân khấu sự kiện', taskTypeId: 'helper' },
+    { id: 'helper_store_watch', label: 'Trông coi cửa hàng, dắt xe và hỗ trợ điều tiết khách', taskTypeId: 'helper' },
+];
+
+export const QUICK_TASKS = ALL_QUICK_TASKS;
+
+// 3 Trạng thái yêu cầu di chuyển bắt buộc (Mục 2 FormCongViecLinhHoatKhac.md)
+export type TravelRequirement = 'none' | 'motorbike' | 'truck_tricycle';
+
+export interface TravelOption {
+    id: TravelRequirement;
+    label: string;
+    description: string;
+    fee: number;
+    feeFormatted: string;
+}
+
+export const TRAVEL_OPTIONS: TravelOption[] = [
+    {
+        id: 'none',
+        label: 'Không cần di chuyển (Làm tại chỗ)',
+        description: 'Người nhận việc làm cố định tại địa chỉ đã chọn',
+        fee: 0,
+        feeFormatted: '0đ',
+    },
+    {
+        id: 'motorbike',
+        label: 'Cần có xe máy đi lại',
+        description: 'Hỗ trợ xăng xe di chuyển giữa các địa điểm hoặc đi việc vặt',
+        fee: 20000,
+        feeFormatted: '+20.000đ',
+    },
+    {
+        id: 'truck_tricycle',
+        label: 'Cần xe tải / xe ba gác',
+        description: 'Hỗ trợ vận chuyển hàng hóa, gom kho, chở đồ đạc sự kiện',
+        fee: 100000,
+        feeFormatted: '+100.000đ',
+    },
 ];
 
 export default function KhacJobScreen() {
@@ -166,9 +234,24 @@ export default function KhacJobScreen() {
     const [selectedTaskType, setSelectedTaskType] = useState('chores');
     const [selectedEffort, setSelectedEffort] = useState('light');
 
-    // 3. Danh mục đầu việc gợi ý nhanh (Mặc định chọn 1 việc)
-    const [selectedTasks, setSelectedTasks] = useState<string[]>(['queue_ticket']);
+    // 3. Danh mục đầu việc lọc động theo Nhóm công việc (Mục 1 FormCongViecLinhHoatKhac.md)
+    const filteredTasks = useMemo(() => {
+        return ALL_QUICK_TASKS.filter((task) => task.taskTypeId === selectedTaskType);
+    }, [selectedTaskType]);
+
+    const [selectedTasks, setSelectedTasks] = useState<string[]>(['chores_errands']);
     const [customTaskDetail, setCustomTaskDetail] = useState('');
+
+    // Tự động đồng bộ checklist khi đổi Nhóm công việc
+    useEffect(() => {
+        const validTaskIds = filteredTasks.map((t) => t.id);
+        const existing = selectedTasks.filter((id) => validTaskIds.includes(id));
+        if (existing.length > 0) {
+            setSelectedTasks(existing);
+        } else {
+            setSelectedTasks(validTaskIds.slice(0, 1));
+        }
+    }, [selectedTaskType]);
 
     const toggleTask = (taskId: string) => {
         setSelectedTasks((prev) =>
@@ -183,8 +266,8 @@ export default function KhacJobScreen() {
     const [hourlyWage, setHourlyWage] = useState('50.000');
     const [fixedPrice, setFixedPrice] = useState('150.000');
 
-    // 5. Yêu cầu phương tiện / Ghi chú
-    const [needMotorbike, setNeedMotorbike] = useState(false);
+    // 5. Yêu cầu di chuyển & Phương tiện bắt buộc (Mục 2 FormCongViecLinhHoatKhac.md)
+    const [travelRequirement, setTravelRequirement] = useState<TravelRequirement>('none');
     const [specialNotes, setSpecialNotes] = useState('');
 
     // 6. Voucher
@@ -223,7 +306,7 @@ export default function KhacJobScreen() {
 
         let recH = 2;
         const recHourlyWageFormatted = baseWagePerHour.toLocaleString('vi-VN');
-        const recHourlyTotal = recH * baseWagePerHour;
+        const recHourlyTotal = recH * baseWagePerHour * workersCount;
         const recFixed = Math.round(recHourlyTotal / 10000) * 10000;
 
         return {
@@ -234,17 +317,28 @@ export default function KhacJobScreen() {
             fixedPrice: Math.max(100000, recFixed),
             fixedPriceFormatted: Math.max(100000, recFixed).toLocaleString('vi-VN'),
         };
-    }, [selectedTaskType, selectedEffort, selectedTasks]);
+    }, [selectedTaskType, selectedEffort, selectedTasks, workersCount]);
 
     // Các chip giá khoán gợi ý linh hoạt
     const dynamicFixedChips = useMemo(() => {
         const center = suggestedRecommendation.fixedPrice;
-        const c1 = Math.max(100000, center - 40000);
+        const c1 = Math.max(60000, center - 40000);
         const c2 = center;
         const c3 = center + 50000;
         const c4 = center + 100000;
-        return [c1, c2, c3, c4].map((v) => v.toLocaleString('vi-VN'));
+        const uniqueValues = Array.from(new Set([c1, c2, c3, c4]));
+        return uniqueValues.map((v) => v.toLocaleString('vi-VN'));
     }, [suggestedRecommendation.fixedPrice]);
+
+    // Các chip giá theo giờ gợi ý linh hoạt
+    const dynamicHourlyChips = useMemo(() => {
+        const center = suggestedRecommendation.hourlyWage;
+        const c1 = Math.max(35000, center - 15000);
+        const c2 = center;
+        const c3 = center + 15000;
+        const c4 = center + 30000;
+        return [c1, c2, c3, c4].map((v) => v.toLocaleString('vi-VN'));
+    }, [suggestedRecommendation.hourlyWage]);
 
     const handleApplySuggestedPrice = () => {
         if (pricingMode === 'hourly') {
@@ -433,14 +527,18 @@ export default function KhacJobScreen() {
     // Tính toán chi phí
     const parsedHourlyWage = parseInt(hourlyWage.replace(/\D/g, ''), 10) || 0;
     const parsedFixedPrice = parseInt(fixedPrice.replace(/\D/g, ''), 10) || 0;
-    const bikeAllowance = needMotorbike ? 20000 * workersCount : 0;
+    const travelAllowance = useMemo(() => {
+        if (travelRequirement === 'motorbike') return 20000 * workersCount;
+        if (travelRequirement === 'truck_tricycle') return 100000;
+        return 0;
+    }, [travelRequirement, workersCount]);
 
     const baseWage =
         pricingMode === 'hourly'
             ? Math.round(hours * workersCount * parsedHourlyWage)
             : parsedFixedPrice * workersCount;
 
-    const subtotal = baseWage + bikeAllowance;
+    const subtotal = baseWage + travelAllowance;
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
@@ -501,17 +599,18 @@ export default function KhacJobScreen() {
             return;
         }
         if (pricingMode === 'fixed' && parsedFixedPrice <= 0) {
-            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao khoán.');
+            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao thuê trọn gói.');
             return;
         }
 
         const taskTypeObj = TASK_TYPES.find((t) => t.id === selectedTaskType);
         const effortObj = EFFORT_LEVELS.find((e) => e.id === selectedEffort);
+        const travelObj = TRAVEL_OPTIONS.find((t) => t.id === travelRequirement);
 
         const pricingSummary =
             pricingMode === 'hourly'
                 ? `${hours}h × ${workersCount} người (${parsedHourlyWage.toLocaleString('vi-VN')} đ/h)`
-                : `Khoán trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ × ${workersCount} người)`;
+                : `Thuê trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ × ${workersCount} người)`;
 
         const summaryLines = [
             `Tên việc: ${jobTitle.trim()}`,
@@ -519,7 +618,8 @@ export default function KhacJobScreen() {
             `Phân loại: ${taskTypeObj?.label} - ${effortObj?.label}`,
             `Hình thức: ${pricingSummary}`,
             `Thời gian: Nhận việc & có mặt ngay (trong 30 - 60 phút)`,
-            `Phương tiện: ${needMotorbike ? 'Yêu cầu có xe máy đi lại (+20.000đ)' : 'Không cần xe'}`,
+            `Di chuyển: ${travelObj?.label} (${travelObj?.feeFormatted})`,
+            `Số đầu việc: ${selectedTasks.length} việc`,
             selectedVoucher && voucherDiscount > 0 ? `Ưu đãi (${selectedVoucher.code}): -${voucherDiscount.toLocaleString('vi-VN')} đ` : null,
             specialNotes.trim() ? `Ghi chú: ${specialNotes.trim()}` : null,
         ].filter(Boolean).join('\n• ');
@@ -552,7 +652,7 @@ export default function KhacJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -588,27 +688,6 @@ export default function KhacJobScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* THÔNG BÁO THỜI GIAN NHẬN VIỆC HỎA TỐC */}
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 12,
-                            backgroundColor: isDark ? '#1e1b4b35' : '#f5f3ff',
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.border : '#e9d5ff',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <Clock size={15} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
-                            Thợ nhận việc và có mặt ngay (trong 30 - 60 phút)
-                        </Text>
-                    </View>
-
                     {/* KHỐI 1: TÊN VIỆC & ĐỊA ĐIỂM */}
                     <View
                         style={[
@@ -617,7 +696,7 @@ export default function KhacJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -667,7 +746,7 @@ export default function KhacJobScreen() {
                                 borderRadius: 12,
                                 backgroundColor: colors.surfaceContainerLow,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 8,
                             }}
                         >
@@ -724,7 +803,7 @@ export default function KhacJobScreen() {
                                     paddingVertical: 9,
                                     paddingHorizontal: 8,
                                     borderRadius: 10,
-                                    backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                    backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : '#e9d5ff',
                                     gap: 6,
@@ -789,6 +868,57 @@ export default function KhacJobScreen() {
                         </View>
                     </View>
 
+                    {/* THÔNG BÁO THỜI GIAN LÀM VIỆC NỔI BẬT: NGAY BÂY GIỜ */}
+                    <View
+                        style={[
+                            {
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                padding: 14,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
+                                borderWidth: 1.5,
+                                borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                                marginBottom: 16,
+                                gap: 12,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 12,
+                                backgroundColor: colors.primary,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Zap size={20} color="#ffffff" fill="#ffffff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>
+                                    Thời gian làm việc: Ngay bây giờ
+                                </Text>
+                                <View
+                                    style={{
+                                        backgroundColor: '#dcfce7',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 6,
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#16a34a' }}>HỎA TỐC</Text>
+                                </View>
+                            </View>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                Tìm người nhận việc đến ngay lập tức • Có mặt trong 30 - 60 phút
+                            </Text>
+                        </View>
+                    </View>
+
                     {/* KHỐI 2: PHÂN LOẠI & CƯỜNG ĐỘ CÔNG VIỆC */}
                     <View
                         style={[
@@ -797,7 +927,7 @@ export default function KhacJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -869,7 +999,7 @@ export default function KhacJobScreen() {
                         </View>
                     </View>
 
-                    {/* KHỐI 3: DANH MỤC ĐẦU VIỆC GỢI Ý NHANH */}
+                    {/* KHỐI 3: DANH MỤC ĐẦU VIỆC GỢI Ý NHANH (LỌC ĐỘNG THEO PHÂN LOẠI) */}
                     <View
                         style={[
                             {
@@ -877,7 +1007,7 @@ export default function KhacJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -885,22 +1015,22 @@ export default function KhacJobScreen() {
                     >
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
-                                Đầu việc nhanh ({selectedTasks.length})
+                                Đầu việc nhanh ({selectedTasks.length}/{filteredTasks.length})
                             </Text>
                             <TouchableOpacity
                                 onPress={() => {
-                                    if (selectedTasks.length === QUICK_TASKS.length) setSelectedTasks([]);
-                                    else setSelectedTasks(QUICK_TASKS.map((t) => t.id));
+                                    if (selectedTasks.length === filteredTasks.length) setSelectedTasks([]);
+                                    else setSelectedTasks(filteredTasks.map((t) => t.id));
                                 }}
                             >
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                                    {selectedTasks.length === QUICK_TASKS.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                                    {selectedTasks.length === filteredTasks.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
                         <View style={{ gap: 7, marginTop: 4 }}>
-                            {QUICK_TASKS.map((item) => {
+                            {filteredTasks.map((item) => {
                                 const isChecked = selectedTasks.includes(item.id);
                                 return (
                                     <TouchableOpacity
@@ -975,7 +1105,7 @@ export default function KhacJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -988,7 +1118,7 @@ export default function KhacJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 2 Tab: Khoán trọn gói vs Theo giờ */}
+                        {/* 2 Tab: Thuê trọn gói vs Theo giờ */}
                         <View
                             style={{
                                 flexDirection: 'row',
@@ -1013,7 +1143,7 @@ export default function KhacJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn gói
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
 
@@ -1099,7 +1229,7 @@ export default function KhacJobScreen() {
                                 </View>
 
                                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 4 }}>
-                                    Tiền công khoán trọn gói (VNĐ / người):
+                                    Tiền công thuê trọn gói (VNĐ / người):
                                 </Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
                                     <TextInput
@@ -1115,9 +1245,9 @@ export default function KhacJobScreen() {
 
                                 {/* Các chip giá khoán gợi ý linh hoạt */}
                                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                    {dynamicFixedChips.map((val) => (
+                                    {dynamicFixedChips.map((val, idx) => (
                                         <TouchableOpacity
-                                            key={val}
+                                            key={`${val}-${idx}`}
                                             onPress={() => setFixedPrice(val)}
                                             style={{
                                                 flex: 1,
@@ -1203,9 +1333,9 @@ export default function KhacJobScreen() {
                                     </View>
 
                                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                                        {['40.000', '50.000', '60.000', '80.000'].map((val) => (
+                                        {dynamicHourlyChips.map((val, idx) => (
                                             <TouchableOpacity
-                                                key={val}
+                                                key={`${val}-${idx}`}
                                                 onPress={() => setHourlyWage(val)}
                                                 style={{
                                                     flex: 1,
@@ -1228,7 +1358,7 @@ export default function KhacJobScreen() {
                         )}
                     </View>
 
-                    {/* KHỐI 5: YÊU CẦU XE CỘ & GHI CHÚ */}
+                    {/* KHỐI 5: YÊU CẦU DI CHUYỂN & PHƯƠNG TIỆN (MỤC 2 FORMCONGVIECLINHOATKHAC.MD) */}
                     <View
                         style={[
                             {
@@ -1236,65 +1366,133 @@ export default function KhacJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
                         ]}
                     >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Truck size={16} color={colors.primary} />
+                                <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
+                                    Yêu cầu di chuyển & Phương tiện
+                                </Text>
+                            </View>
+                            <View style={{ backgroundColor: colors.primary + '15', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                                <Text style={{ fontSize: 10.5, fontWeight: '800', color: colors.primary }}>BẮT BUỘC</Text>
+                            </View>
+                        </View>
+
+                        <View style={{ gap: 8 }}>
+                            {TRAVEL_OPTIONS.map((opt) => {
+                                const isSelected = travelRequirement === opt.id;
+                                const isHighlighted = opt.id === 'truck_tricycle' && selectedTaskType === 'helper';
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.id}
+                                        onPress={() => setTravelRequirement(opt.id)}
+                                        activeOpacity={0.7}
+                                        style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            padding: 12,
+                                            borderRadius: 12,
+                                            backgroundColor: isSelected ? colors.primary + '12' : colors.surfaceContainerLow,
+                                            borderWidth: 1.5,
+                                            borderColor: isSelected ? colors.primary : (isHighlighted ? '#f59e0b' : colors.border),
+                                            gap: 10,
+                                        }}
+                                    >
+                                        <View
+                                            style={{
+                                                width: 18,
+                                                height: 18,
+                                                borderRadius: 9,
+                                                borderWidth: 2,
+                                                borderColor: isSelected ? colors.primary : colors.textSecondary,
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            {isSelected && (
+                                                <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.primary }} />
+                                            )}
+                                        </View>
+
+                                        <View style={{ flex: 1 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                                    {opt.label}
+                                                </Text>
+                                                {isHighlighted && (
+                                                    <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                                                        <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#b45309' }}>Gợi ý phụ kho</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                                {opt.description}
+                                            </Text>
+                                        </View>
+
+                                        <View
+                                            style={{
+                                                paddingHorizontal: 8,
+                                                paddingVertical: 3,
+                                                borderRadius: 8,
+                                                backgroundColor: opt.fee > 0 ? (isSelected ? colors.primary + '20' : colors.surfaceContainer) : 'transparent',
+                                            }}
+                                        >
+                                            <Text style={{ fontSize: 11, fontWeight: '800', color: opt.fee > 0 ? colors.primary : colors.textSecondary }}>
+                                                {opt.feeFormatted}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* KHỐI 6: GHI CHÚ THÊM */}
+                    <View
+                        style={[
+                            {
+                                padding: 16,
+                                borderRadius: 20,
+                                backgroundColor: colors.surface,
+                                borderWidth: 1,
+                                borderColor: isDark ? colors.border : '#e2e8f0',
+                                marginBottom: 16,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                             <FileText size={16} color={colors.primary} />
                             <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
-                                Yêu cầu thêm & Ghi chú
+                                Ghi chú thêm cho người nhận việc
                             </Text>
                         </View>
-
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Yêu cầu có xe máy đi lại</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Hỗ trợ xăng xe di chuyển giữa các địa điểm</Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => setNeedMotorbike(!needMotorbike)}
-                                style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 12,
-                                    backgroundColor: needMotorbike ? '#dcfce7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: needMotorbike ? '#10b981' : colors.border,
-                                }}
-                            >
-                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: needMotorbike ? '#059669' : colors.textSecondary }}>
-                                    {needMotorbike ? 'Đã bật (+20k)' : 'Không cần xe'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
-                                Ghi chú thêm cho người nhận việc:
-                            </Text>
-                            <TextInput
-                                value={specialNotes}
-                                onChangeText={setSpecialNotes}
-                                placeholder="Ví dụ: Mang theo CCCD làm thủ tục, điện thoại có 4G..."
-                                placeholderTextColor={colors.placeholder}
-                                multiline
-                                numberOfLines={2}
-                                style={{
-                                    backgroundColor: colors.surfaceContainerLow,
-                                    borderRadius: 10,
-                                    padding: 10,
-                                    fontSize: 12,
-                                    color: colors.text,
-                                    minHeight: 55,
-                                    textAlignVertical: 'top',
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                }}
-                            />
-                        </View>
+                        <TextInput
+                            value={specialNotes}
+                            onChangeText={setSpecialNotes}
+                            placeholder="Ví dụ: Mang theo CCCD làm thủ tục, điện thoại có 4G, trang phục lịch sự..."
+                            placeholderTextColor={colors.placeholder}
+                            multiline
+                            numberOfLines={2}
+                            style={{
+                                backgroundColor: colors.surfaceContainerLow,
+                                borderRadius: 10,
+                                padding: 10,
+                                fontSize: 12,
+                                color: colors.text,
+                                minHeight: 55,
+                                textAlignVertical: 'top',
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                            }}
+                        />
                     </View>
 
                     {/* KHỐI ƯU ĐÃI VOUCHER */}
@@ -1307,7 +1505,7 @@ export default function KhacJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -1404,16 +1602,18 @@ export default function KhacJobScreen() {
                                 <Users size={13} color={colors.primary} />
                                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
                                     {pricingMode === 'fixed'
-                                        ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
+                                        ? `Trọn gói: ${baseWage.toLocaleString('vi-VN')} đ`
                                         : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} người)`}
                                 </Text>
                             </View>
 
-                            {needMotorbike && (
+                            {travelAllowance > 0 && (
                                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                    <Briefcase size={13} color="#059669" />
+                                    <Truck size={13} color="#059669" />
                                     <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
-                                        Xe máy: +{bikeAllowance.toLocaleString('vi-VN')} đ
+                                        {travelRequirement === 'motorbike'
+                                            ? `Xe máy: +${travelAllowance.toLocaleString('vi-VN')} đ`
+                                            : `Xe chở hàng: +${travelAllowance.toLocaleString('vi-VN')} đ`}
                                     </Text>
                                 </View>
                             )}
@@ -1426,6 +1626,34 @@ export default function KhacJobScreen() {
                                     </Text>
                                 </View>
                             )}
+                        </View>
+
+                        {/* Khuyến cáo an toàn & Chính sách nền tảng (Mục 3 FormCongViecLinhHoatKhac.md) */}
+                        <View
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'flex-start',
+                                gap: 8,
+                                marginTop: 12,
+                                padding: 10,
+                                borderRadius: 12,
+                                backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+                                borderWidth: 1,
+                                borderColor: isDark ? '#334155' : '#e2e8f0',
+                            }}
+                        >
+                            <ShieldAlert size={15} color={colors.textSecondary} style={{ marginTop: 2 }} />
+                            <Text
+                                style={{
+                                    fontSize: 11.5,
+                                    color: colors.textSecondary,
+                                    fontStyle: 'italic',
+                                    lineHeight: 16,
+                                    flex: 1,
+                                }}
+                            >
+                                Lưu ý: Không đặt các yêu cầu vi phạm pháp luật, vận chuyển hàng cấm hoặc các công việc có rủi ro cao về an toàn lao động. Nền tảng có quyền từ chối các yêu cầu không hợp lệ.
+                            </Text>
                         </View>
 
                         <TouchableOpacity
@@ -1618,7 +1846,7 @@ export default function KhacJobScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: (insets.bottom > 0 ? insets.bottom : 16) + 20 }}>
-                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#ebdffa', marginBottom: 20 }, shadows.card]}>
+                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#e2e8f0', marginBottom: 20 }, shadows.card]}>
                             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Nhập mã ưu đãi của bạn</Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
@@ -1655,10 +1883,10 @@ export default function KhacJobScreen() {
                                 return (
                                     <View
                                         key={v.code}
-                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#ebdffa'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
+                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#e2e8f0'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
                                     >
                                         <View style={{ flexDirection: 'row', gap: 12 }}>
-                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#f3e8ff'), alignItems: 'center', justifyContent: 'center' }}>
+                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#eff6ff'), alignItems: 'center', justifyContent: 'center' }}>
                                                 <Ticket size={22} color={isCurrentSelected ? '#10b981' : colors.primary} />
                                             </View>
                                             <View style={{ flex: 1 }}>

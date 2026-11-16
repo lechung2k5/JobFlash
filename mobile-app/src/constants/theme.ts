@@ -32,6 +32,7 @@ export interface ThemeColors {
     border: string;
     text: string;
     textSecondary: string;
+    textTertiary: string;
     placeholder: string;
 
     success: string;
@@ -40,35 +41,36 @@ export interface ThemeColors {
 }
 
 export const LIGHT_COLORS: ThemeColors = {
-    primary: '#6f00c5',
-    primaryContainer: '#8b2ce6',
+    primary: '#2563eb',
+    primaryContainer: '#3b82f6',
     onPrimary: '#ffffff',
-    primaryFixed: '#efdbff',
+    primaryFixed: '#dbeafe',
 
-    secondary: '#df1875',
-    secondaryContainer: '#f43f5e',
+    secondary: '#0284c7',
+    secondaryContainer: '#38bdf8',
     onSecondary: '#ffffff',
-    secondaryFixed: '#ffd9e1',
+    secondaryFixed: '#e0f2fe',
 
-    tertiary: '#4632c0',
+    tertiary: '#1d4ed8',
 
-    background: '#faf8fc',
+    background: '#f8fafc',
     surface: '#ffffff',
-    surfaceDim: '#e1d5f2',
-    surfaceContainerLow: '#f9f1ff',
-    surfaceContainer: '#f4eaff',
-    surfaceContainerHigh: '#efe3ff',
+    surfaceDim: '#e2e8f0',
+    surfaceContainerLow: '#f1f5f9',
+    surfaceContainer: '#eff6ff',
+    surfaceContainerHigh: '#dbeafe',
 
-    onSurface: '#1f182d',
-    onSurfaceVariant: '#4c4355',
-    outline: '#7e7386',
-    outlineVariant: '#cfc2d7',
+    onSurface: '#0f172a',
+    onSurfaceVariant: '#334155',
+    outline: '#64748b',
+    outlineVariant: '#cbd5e1',
 
     card: '#ffffff',
-    border: '#ebdffa',
-    text: '#111827',
-    textSecondary: '#6b7280',
-    placeholder: '#9ca3af',
+    border: '#e2e8f0',
+    text: '#0f172a',
+    textSecondary: '#64748b',
+    textTertiary: '#94a3b8',
+    placeholder: '#94a3b8',
 
     success: '#10b981',
     warning: '#f59e0b',
@@ -76,35 +78,36 @@ export const LIGHT_COLORS: ThemeColors = {
 };
 
 export const DARK_COLORS: ThemeColors = {
-    primary: '#a855f7',
-    primaryContainer: '#7e22ce',
+    primary: '#3b82f6',
+    primaryContainer: '#1d4ed8',
     onPrimary: '#ffffff',
-    primaryFixed: '#3b0764',
+    primaryFixed: '#172554',
 
-    secondary: '#f43f5e',
-    secondaryContainer: '#be123c',
+    secondary: '#38bdf8',
+    secondaryContainer: '#0284c7',
     onSecondary: '#ffffff',
-    secondaryFixed: '#4c0519',
+    secondaryFixed: '#082f49',
 
-    tertiary: '#818cf8',
+    tertiary: '#60a5fa',
 
-    background: '#0d0914',
-    surface: '#171222',
-    surfaceDim: '#120d1c',
-    surfaceContainerLow: '#1e182c',
-    surfaceContainer: '#261f38',
-    surfaceContainerHigh: '#322949',
+    background: '#0b0f19',
+    surface: '#111827',
+    surfaceDim: '#0f172a',
+    surfaceContainerLow: '#1e293b',
+    surfaceContainer: '#1e293b',
+    surfaceContainerHigh: '#334155',
 
-    onSurface: '#f5f3ff',
-    onSurfaceVariant: '#c4b5fd',
-    outline: '#6d5a88',
-    outlineVariant: '#433757',
+    onSurface: '#f8fafc',
+    onSurfaceVariant: '#94a3b8',
+    outline: '#64748b',
+    outlineVariant: '#334155',
 
-    card: '#1b1428',
-    border: '#34254b',
-    text: '#f9fafb',
-    textSecondary: '#9ca3af',
-    placeholder: '#6b7280',
+    card: '#111827',
+    border: '#1e293b',
+    text: '#f8fafc',
+    textSecondary: '#94a3b8',
+    textTertiary: '#64748b',
+    placeholder: '#64748b',
 
     success: '#10b981',
     warning: '#f59e0b',
@@ -112,31 +115,38 @@ export const DARK_COLORS: ThemeColors = {
 };
 
 export const GRADIENTS = {
-    electric: ['#6f00c5', '#df1875'] as const,
-    primary: ['#6f00c5', '#8b2ce6'] as const,
-    worker: ['#e11d48', '#df1875', '#7c3aed'] as const,
+    electric: ['#1d4ed8', '#2563eb', '#3b82f6'] as const,
+    primary: ['#1e40af', '#2563eb'] as const,
+    worker: ['#0284c7', '#2563eb', '#1d4ed8'] as const,
     cardGlassLight: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)'] as const,
-    cardGlassDark: ['rgba(30, 24, 44, 0.95)', 'rgba(20, 15, 30, 0.85)'] as const,
+    cardGlassDark: ['rgba(17, 24, 39, 0.95)', 'rgba(15, 23, 42, 0.85)'] as const,
     success: ['#059669', '#10b981'] as const,
 };
 
 export const SHADOWS = {
+    soft: {
+        shadowColor: '#0f172a',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+        elevation: 2,
+    },
     electricGlow: {
-        shadowColor: '#df1875',
+        shadowColor: '#2563eb',
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.35,
+        shadowOpacity: 0.3,
         shadowRadius: 16,
         elevation: 8,
     },
     card: {
-        shadowColor: '#6f00c5',
+        shadowColor: '#1d4ed8',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
         shadowRadius: 12,
         elevation: 3,
     },
     floating: {
-        shadowColor: '#1f182d',
+        shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.15,
         shadowRadius: 20,

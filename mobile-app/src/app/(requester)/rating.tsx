@@ -93,7 +93,7 @@ export default function RequesterRatingScreen() {
                         </View>
                         <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>
                             {rating === 5
-                                ? (language === 'vi' ? 'Tuyệt vời, vượt mong đợi! 🌟' : 'Excellent! 🌟')
+                                ? (language === 'vi' ? 'Tuyệt vời, vượt mong đợi!' : 'Excellent!')
                                 : (language === 'vi' ? `Hài lòng (${rating}/5 sao)` : `Good (${rating}/5 stars)`)}
                         </Text>
                     </View>
@@ -149,7 +149,7 @@ export default function RequesterRatingScreen() {
                         >
                             <ThumbsUp size={18} color="#ffffff" />
                             <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '800' }}>
-                                {language === 'vi' ? 'Gửi đánh giá & Hoàn tất' : 'Submit Rating'}
+                                {language === 'vi' ? 'GỬI ĐÁNH GIÁ & VỀ TRANG CHỦ' : 'SUBMIT & RETURN HOME'}
                             </Text>
                         </LinearGradient>
                     </TouchableOpacity>

@@ -231,7 +231,7 @@ export default function RequesterHomeScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>
-            <StatusBar style="light" translucent backgroundColor="transparent" />
+            <StatusBar style="light" />
 
             {/* 1. HEADER BACKGROUND: TỰ DÀI RA KHI KÉO XUỐNG, LƯỚT LÊN THÌ TRÔI THEO VÀ MỜ NHẸ Ở BOTTOM */}
             <Animated.View
@@ -332,9 +332,9 @@ export default function RequesterHomeScreen() {
                         >
                             Chào {currentUser?.fullName && currentUser.fullName !== 'Người dùng mới'
                                 ? currentUser.fullName
-                                : 'Lê Công Chung'} 👋
+                                : 'Lê Công Chung'}
                         </Text>
-                        <Text style={{ fontSize: 13, color: '#f3e8ff', fontWeight: '600', marginTop: 2 }}>
+                        <Text style={{ fontSize: 13, color: '#dbeafe', fontWeight: '600', marginTop: 2 }}>
                             {language === 'vi' ? 'Hôm nay bạn cần thuê thợ gì?' : 'Find reliable workers for your gigs'}
                         </Text>
                     </View>
@@ -368,7 +368,7 @@ export default function RequesterHomeScreen() {
                                 borderRadius: 22,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1.5,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: colors.border,
                                 paddingVertical: 16,
                                 paddingHorizontal: 18,
                                 flexDirection: 'row',
@@ -448,7 +448,7 @@ export default function RequesterHomeScreen() {
                                         borderRadius: 18,
                                         backgroundColor: colors.surface,
                                         borderWidth: 1,
-                                        borderColor: isDark ? colors.border : '#ebdffa',
+                                        borderColor: colors.border,
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                     },
@@ -613,7 +613,7 @@ export default function RequesterHomeScreen() {
                                         borderRadius: 16,
                                         backgroundColor: colors.surface,
                                         borderWidth: 1,
-                                        borderColor: isDark ? colors.border : '#ebdffa',
+                                        borderColor: colors.border,
                                         overflow: 'hidden',
                                     },
                                     shadows.card,
@@ -680,7 +680,7 @@ export default function RequesterHomeScreen() {
                                             marginTop: 8,
                                             paddingTop: 8,
                                             borderTopWidth: 1,
-                                            borderColor: isDark ? colors.border : '#f1e6ff',
+                                            borderColor: colors.border,
                                         }}
                                     >
                                         <View
@@ -688,7 +688,7 @@ export default function RequesterHomeScreen() {
                                                 flexDirection: 'row',
                                                 alignItems: 'center',
                                                 gap: 4,
-                                                backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                                backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                                 paddingHorizontal: 6,
                                                 paddingVertical: 2.5,
                                                 borderRadius: 6,

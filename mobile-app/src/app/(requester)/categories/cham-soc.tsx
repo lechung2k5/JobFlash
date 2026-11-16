@@ -35,6 +35,8 @@ import {
     ShieldCheck,
     UserCheck,
     Stethoscope,
+    AlertTriangle,
+    Zap,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
 import { useAppTheme } from '../../../constants/theme';
@@ -123,15 +125,46 @@ export const MOBILITY_STATUSES = [
     { id: 'bedridden', label: 'Nằm tại chỗ' },
 ];
 
-// 6 Đầu việc chăm sóc (Gọn gàng, full width, 1 dòng)
-export const CARE_TASKS = [
-    { id: 'feed_med', label: 'Hỗ trợ ăn uống, uống thuốc đúng giờ' },
-    { id: 'hygiene', label: 'Vệ sinh cá nhân, tắm gội, thay bỉm' },
-    { id: 'walk_talk', label: 'Trò chuyện, tâm sự, dìu đi dạo nhẹ' },
-    { id: 'vital_signs', label: 'Đo huyết áp, đo đường huyết & theo dõi' },
-    { id: 'cook_meal', label: 'Nấu cháo súp, thức ăn dinh dưỡng' },
-    { id: 'pet_care', label: 'Cho thú cưng ăn, dắt dạo, dọn chuồng' },
+// Ưu tiên giới tính người chăm sóc (Mục 1 FormChamSoc.md)
+export const GENDER_OPTIONS = [
+    { id: 'male', label: 'Nam' },
+    { id: 'female', label: 'Nữ' },
+    { id: 'any', label: 'Bất kỳ' },
 ];
+
+export interface CareTaskItem {
+    id: string;
+    label: string;
+    targetTypes: Array<'elderly' | 'patient' | 'child' | 'pet'>;
+}
+
+// Đầu việc chăm sóc lọc động theo đối tượng (Mục 2 FormChamSoc.md)
+export const ALL_CARE_TASKS: CareTaskItem[] = [
+    // Người cao tuổi & Bệnh nhân
+    { id: 'feed_med', label: 'Hỗ trợ ăn uống, uống thuốc đúng giờ', targetTypes: ['elderly', 'patient'] },
+    { id: 'hygiene', label: 'Vệ sinh cá nhân, tắm gội, thay bỉm', targetTypes: ['elderly', 'patient'] },
+    { id: 'walk_talk', label: 'Trò chuyện, tâm sự, dìu đi dạo nhẹ', targetTypes: ['elderly', 'patient'] },
+    { id: 'vital_signs', label: 'Đo huyết áp, đo đường huyết & theo dõi sinh hiệu', targetTypes: ['elderly', 'patient'] },
+    { id: 'cook_meal', label: 'Nấu cháo súp, thức ăn dinh dưỡng', targetTypes: ['elderly', 'patient'] },
+    { id: 'rehab_assist', label: 'Hỗ trợ tập phục hồi chức năng, xoa bóp nhẹ', targetTypes: ['elderly', 'patient'] },
+
+    // Trẻ nhỏ
+    { id: 'child_supervision', label: 'Trông giữ, theo dõi & bảo đảm an toàn cho bé', targetTypes: ['child'] },
+    { id: 'child_feeding', label: 'Pha sữa, cho bé ăn uống, dỗ ăn', targetTypes: ['child'] },
+    { id: 'child_hygiene', label: 'Tắm bé, thay tã bỉm, vệ sinh cho bé', targetTypes: ['child'] },
+    { id: 'child_play', label: 'Chơi cùng bé, đọc truyện, kể chuyện', targetTypes: ['child'] },
+    { id: 'child_sleep', label: 'Dỗ bé ngủ trưa / ngủ tối đúng giờ', targetTypes: ['child'] },
+    { id: 'child_cook', label: 'Nấu cháo, đồ ăn dặm dinh dưỡng cho bé', targetTypes: ['child'] },
+
+    // Thú cưng
+    { id: 'pet_feeding', label: 'Cho thú cưng ăn, uống nước theo khẩu phần', targetTypes: ['pet'] },
+    { id: 'pet_walk', label: 'Dắt chó đi dạo, cho vận động ngoài trời', targetTypes: ['pet'] },
+    { id: 'pet_litter', label: 'Dọn khay vệ sinh, dọn chuồng, thay cát', targetTypes: ['pet'] },
+    { id: 'pet_bath', label: 'Tắm rửa, sấy lông, vệ sinh tai móng cơ bản', targetTypes: ['pet'] },
+    { id: 'pet_medication', label: 'Cho uống thuốc / bôi thuốc theo đơn', targetTypes: ['pet'] },
+];
+
+export const CARE_TASKS = ALL_CARE_TASKS;
 
 export default function ChamSocJobScreen() {
     const router = useRouter();
@@ -162,13 +195,29 @@ export default function ChamSocJobScreen() {
     const searchTimerRef = useRef<any>(null);
     const modalSearchTimerRef = useRef<any>(null);
 
-    // 2. Đối tượng & Tình trạng sinh hoạt
+    // 2. Đối tượng, Tình trạng sinh hoạt & Giới tính ưu tiên (Mục 1 FormChamSoc.md)
     const [selectedRecipient, setSelectedRecipient] = useState('elderly');
     const [selectedMobility, setSelectedMobility] = useState('assisted');
+    const [preferredGender, setPreferredGender] = useState<'male' | 'female' | 'any'>('any');
 
-    // 3. Danh mục đầu việc (Mặc định hỗ trợ ăn uống & vệ sinh)
+    // 3. Danh mục đầu việc lọc động theo đối tượng (Mục 2 FormChamSoc.md)
+    const filteredTasks = useMemo(() => {
+        return ALL_CARE_TASKS.filter((task) => task.targetTypes.includes(selectedRecipient as any));
+    }, [selectedRecipient]);
+
     const [selectedTasks, setSelectedTasks] = useState<string[]>(['feed_med', 'hygiene']);
     const [customConditionDetail, setCustomConditionDetail] = useState('');
+
+    // Tự động đồng bộ checklist khi đổi nhóm đối tượng chăm sóc
+    useEffect(() => {
+        const validTaskIds = filteredTasks.map((t) => t.id);
+        const existing = selectedTasks.filter((id) => validTaskIds.includes(id));
+        if (existing.length > 0) {
+            setSelectedTasks(existing);
+        } else {
+            setSelectedTasks(validTaskIds.slice(0, 2));
+        }
+    }, [selectedRecipient]);
 
     const toggleTask = (taskId: string) => {
         setSelectedTasks((prev) =>
@@ -222,8 +271,9 @@ export default function ChamSocJobScreen() {
         else if (selectedMobility === 'assisted') baseWagePerHour += 5000;
 
         let recH = 4;
+        if (selectedRecipient === 'pet') recH = 2;
         const recHourlyWageFormatted = baseWagePerHour.toLocaleString('vi-VN');
-        const recHourlyTotal = recH * baseWagePerHour;
+        const recHourlyTotal = recH * baseWagePerHour * workersCount;
         const recFixed = Math.round(recHourlyTotal / 10000) * 10000;
 
         return {
@@ -234,7 +284,17 @@ export default function ChamSocJobScreen() {
             fixedPrice: recFixed,
             fixedPriceFormatted: recFixed.toLocaleString('vi-VN'),
         };
-    }, [selectedRecipient, selectedMobility, selectedTasks]);
+    }, [selectedRecipient, selectedMobility, selectedTasks, workersCount]);
+
+    // Các chip gợi ý thù lao theo giờ tự động cập nhật
+    const dynamicHourlyChips = useMemo(() => {
+        const center = suggestedRecommendation.hourlyWage;
+        const c1 = Math.max(40000, center - 15000);
+        const c2 = center;
+        const c3 = center + 15000;
+        const c4 = center + 30000;
+        return [c1, c2, c3, c4].map((v) => v.toLocaleString('vi-VN'));
+    }, [suggestedRecommendation.hourlyWage]);
 
     // Các chip giá khoán gợi ý linh hoạt
     const dynamicFixedChips = useMemo(() => {
@@ -248,6 +308,7 @@ export default function ChamSocJobScreen() {
 
     const handleApplySuggestedPrice = () => {
         if (pricingMode === 'hourly') {
+            setHours(suggestedRecommendation.hours);
             setHourlyWage(suggestedRecommendation.hourlyWageFormatted);
         } else {
             setFixedPrice(suggestedRecommendation.fixedPriceFormatted);
@@ -496,26 +557,29 @@ export default function ChamSocJobScreen() {
             return;
         }
         if (pricingMode === 'fixed' && parsedFixedPrice <= 0) {
-            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao khoán trọn gói.');
+            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao thuê trọn gói.');
             return;
         }
 
         const recObj = RECIPIENT_TYPES.find((r) => r.id === selectedRecipient);
         const mobObj = MOBILITY_STATUSES.find((m) => m.id === selectedMobility);
+        const genderObj = GENDER_OPTIONS.find((g) => g.id === preferredGender);
 
         const pricingSummary =
             pricingMode === 'hourly'
                 ? `${hours}h × ${workersCount} người (${parsedHourlyWage.toLocaleString('vi-VN')} đ/h)`
-                : `Khoán trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ × ${workersCount} người)`;
+                : `Thuê trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ × ${workersCount} người)`;
 
         const summaryLines = [
             `Địa điểm: ${address}${houseDetail ? ` (${houseDetail})` : ''}`,
             `Đối tượng: ${recObj?.label} - ${mobObj?.label}`,
+            `Ưu tiên giới tính: ${genderObj?.label || 'Bất kỳ'}`,
             `Hình thức: ${pricingSummary}`,
             `Thời gian: Nhận việc & có mặt ngay (trong 30 - 60 phút)`,
-            `Chuyên môn: ${needNursingSkill ? 'Yêu cầu kỹ năng điều dưỡng (+50.000đ)' : 'Chăm sóc chu đáo thông thường'}`,
+            `Chuyên môn: ${needNursingSkill ? 'Cần nghiệp vụ điều dưỡng (+50.000đ)' : 'Chăm sóc cơ bản (không cần bằng cấp)'}`,
             `Số đầu việc: ${selectedTasks.length} việc`,
             selectedVoucher && voucherDiscount > 0 ? `Ưu đãi (${selectedVoucher.code}): -${voucherDiscount.toLocaleString('vi-VN')} đ` : null,
+            customConditionDetail.trim() ? `Lưu ý sinh hoạt/bệnh lý: ${customConditionDetail.trim()}` : null,
             specialNotes.trim() ? `Ghi chú: ${specialNotes.trim()}` : null,
         ].filter(Boolean).join('\n• ');
 
@@ -547,7 +611,7 @@ export default function ChamSocJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -583,27 +647,6 @@ export default function ChamSocJobScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* THÔNG BÁO THỜI GIAN NHẬN VIỆC HỎA TỐC */}
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 12,
-                            backgroundColor: isDark ? '#1e1b4b35' : '#f5f3ff',
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.border : '#e9d5ff',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <Clock size={15} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
-                            Thợ nhận việc và có mặt ngay (trong 30 - 60 phút)
-                        </Text>
-                    </View>
-
                     {/* KHỐI 1: ĐỊA ĐIỂM CHĂM SÓC */}
                     <View
                         style={[
@@ -612,7 +655,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -634,7 +677,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 12,
                                 backgroundColor: colors.surfaceContainerLow,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 8,
                             }}
                         >
@@ -691,7 +734,7 @@ export default function ChamSocJobScreen() {
                                     paddingVertical: 9,
                                     paddingHorizontal: 8,
                                     borderRadius: 10,
-                                    backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                    backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : '#e9d5ff',
                                     gap: 6,
@@ -756,6 +799,57 @@ export default function ChamSocJobScreen() {
                         </View>
                     </View>
 
+                    {/* THÔNG BÁO THỜI GIAN LÀM VIỆC NỔI BẬT: NGAY BÂY GIỜ */}
+                    <View
+                        style={[
+                            {
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                padding: 14,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
+                                borderWidth: 1.5,
+                                borderColor: isDark ? '#3b82f6' : '#bfdbfe',
+                                marginBottom: 16,
+                                gap: 12,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 12,
+                                backgroundColor: colors.primary,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Zap size={20} color="#ffffff" fill="#ffffff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>
+                                    Thời gian làm việc: Ngay bây giờ
+                                </Text>
+                                <View
+                                    style={{
+                                        backgroundColor: '#dcfce7',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 6,
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#16a34a' }}>HỎA TỐC</Text>
+                                </View>
+                            </View>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                Tìm nhân sự chăm sóc đến ngay lập tức • Có mặt trong 30 - 60 phút
+                            </Text>
+                        </View>
+                    </View>
+
                     {/* KHỐI 2: ĐỐI TƯỢNG & TÌNH TRẠNG SINH HOẠT */}
                     <View
                         style={[
@@ -764,7 +858,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -834,9 +928,40 @@ export default function ChamSocJobScreen() {
                                 );
                             })}
                         </View>
+
+                        {/* Ưu tiên giới tính người chăm sóc (Mục 1 FormChamSoc.md) */}
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 12, marginBottom: 6 }}>
+                            Ưu tiên giới tính người chăm sóc
+                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 6 }}>
+                            {GENDER_OPTIONS.map((g) => {
+                                const isSelected = preferredGender === g.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={g.id}
+                                        onPress={() => setPreferredGender(g.id as any)}
+                                        style={{
+                                            flex: 1,
+                                            paddingVertical: 9,
+                                            paddingHorizontal: 2,
+                                            borderRadius: 10,
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderWidth: 1.5,
+                                            borderColor: isSelected ? colors.primary : colors.border,
+                                            backgroundColor: isSelected ? colors.primary + '15' : colors.surfaceContainerLow,
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 12.5, fontWeight: '800', color: isSelected ? colors.primary : colors.text, textAlign: 'center' }}>
+                                            {g.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
                     </View>
 
-                    {/* KHỐI 3: DANH MỤC ĐẦU VIỆC CHĂM SÓC */}
+                    {/* KHỐI 3: DANH MỤC ĐẦU VIỆC CHĂM SÓC (LỌC ĐỘNG THEO ĐỐI TƯỢNG) */}
                     <View
                         style={[
                             {
@@ -844,7 +969,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -856,18 +981,18 @@ export default function ChamSocJobScreen() {
                             </Text>
                             <TouchableOpacity
                                 onPress={() => {
-                                    if (selectedTasks.length === CARE_TASKS.length) setSelectedTasks([]);
-                                    else setSelectedTasks(CARE_TASKS.map((t) => t.id));
+                                    if (selectedTasks.length === filteredTasks.length) setSelectedTasks([]);
+                                    else setSelectedTasks(filteredTasks.map((t) => t.id));
                                 }}
                             >
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                                    {selectedTasks.length === CARE_TASKS.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                                    {selectedTasks.length === filteredTasks.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
                         <View style={{ gap: 7, marginTop: 4 }}>
-                            {CARE_TASKS.map((item) => {
+                            {filteredTasks.map((item) => {
                                 const isChecked = selectedTasks.includes(item.id);
                                 return (
                                     <TouchableOpacity
@@ -913,12 +1038,12 @@ export default function ChamSocJobScreen() {
 
                         <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
-                                Lưu ý thói quen sinh hoạt / bệnh lý:
+                                Lưu ý thói quen sinh hoạt / bệnh lý nền:
                             </Text>
                             <TextInput
                                 value={customConditionDetail}
                                 onChangeText={setCustomConditionDetail}
-                                placeholder="Ví dụ: Ăn nhạt kiêng đường, hay thức giấc đêm, cẩn thận dị ứng..."
+                                placeholder="Ví dụ: Ăn nhạt kiêng đường, có bệnh lý cao huyết áp, cần cẩn thận khi dìu đi..."
                                 placeholderTextColor={colors.placeholder}
                                 style={{
                                     backgroundColor: colors.surfaceContainerLow,
@@ -942,7 +1067,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -955,7 +1080,7 @@ export default function ChamSocJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 2 Tab: Theo giờ vs Khoán trọn gói */}
+                        {/* 2 Tab: Theo giờ vs Thuê trọn gói */}
                         <View
                             style={{
                                 flexDirection: 'row',
@@ -997,7 +1122,7 @@ export default function ChamSocJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn gói
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1026,8 +1151,8 @@ export default function ChamSocJobScreen() {
                                 </View>
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text, marginTop: 2 }}>
                                     {pricingMode === 'hourly'
-                                        ? `${suggestedRecommendation.hourlyWageFormatted} đ/h (Ca ${suggestedRecommendation.hours}h ~${suggestedRecommendation.hourlyTotalFormatted} đ)`
-                                        : `Khoán trọn gói ~${suggestedRecommendation.fixedPriceFormatted} đ/người`}
+                                        ? `Nên thuê ${suggestedRecommendation.hours}h (${suggestedRecommendation.hourlyWageFormatted} đ/h ~${suggestedRecommendation.hourlyTotalFormatted} đ)`
+                                        : `Khoán khoảng ${suggestedRecommendation.fixedPriceFormatted} đ`}
                                 </Text>
                             </View>
 
@@ -1106,7 +1231,7 @@ export default function ChamSocJobScreen() {
                                     </View>
 
                                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                                        {['60.000', '70.000', '85.000', '100.000'].map((val) => (
+                                        {dynamicHourlyChips.map((val) => (
                                             <TouchableOpacity
                                                 key={val}
                                                 onPress={() => setHourlyWage(val)}
@@ -1155,7 +1280,7 @@ export default function ChamSocJobScreen() {
                                 </View>
 
                                 <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 4 }}>
-                                    Thù lao khoán trọn gói (VNĐ / người):
+                                    Thù lao thuê trọn gói (VNĐ / người):
                                 </Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
                                     <TextInput
@@ -1171,9 +1296,9 @@ export default function ChamSocJobScreen() {
 
                                 {/* Các chip giá khoán gợi ý linh hoạt */}
                                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                    {dynamicFixedChips.map((val) => (
+                                    {dynamicFixedChips.map((val, idx) => (
                                         <TouchableOpacity
-                                            key={val}
+                                            key={`${val}-${idx}`}
                                             onPress={() => setFixedPrice(val)}
                                             style={{
                                                 flex: 1,
@@ -1203,7 +1328,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1216,27 +1341,113 @@ export default function ChamSocJobScreen() {
                             </Text>
                         </View>
 
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Yêu cầu nghiệp vụ điều dưỡng</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Thay băng, tiêm truyền theo y lệnh, đo sinh hiệu</Text>
-                            </View>
+                        {/* 2 Lựa chọn Chuyên môn y tế theo mục 3 FormChamSoc.md */}
+                        <View style={{ gap: 8, marginBottom: 12 }}>
                             <TouchableOpacity
-                                onPress={() => setNeedNursingSkill(!needNursingSkill)}
+                                onPress={() => setNeedNursingSkill(false)}
+                                activeOpacity={0.75}
                                 style={{
+                                    paddingVertical: 10,
                                     paddingHorizontal: 12,
-                                    paddingVertical: 6,
                                     borderRadius: 12,
-                                    backgroundColor: needNursingSkill ? '#dcfce7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: needNursingSkill ? '#10b981' : colors.border,
+                                    borderWidth: 1.5,
+                                    borderColor: !needNursingSkill ? colors.primary : colors.border,
+                                    backgroundColor: !needNursingSkill ? colors.primary + '12' : colors.surfaceContainerLow,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
                                 }}
                             >
-                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: needNursingSkill ? '#059669' : colors.textSecondary }}>
-                                    {needNursingSkill ? 'Đã bật (+50k)' : 'Không bắt buộc'}
-                                </Text>
+                                <View style={{ flex: 1, marginRight: 8 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: !needNursingSkill ? '800' : '600', color: !needNursingSkill ? colors.primary : colors.text }}>
+                                        Chăm sóc cơ bản (Không cần bằng cấp y tế)
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                        Hỗ trợ ăn uống, trò chuyện, vệ sinh cá nhân, dìu đi dạo
+                                    </Text>
+                                </View>
+                                <View
+                                    style={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        borderWidth: 2,
+                                        borderColor: !needNursingSkill ? colors.primary : colors.border,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {!needNursingSkill && (
+                                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary }} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => setNeedNursingSkill(true)}
+                                activeOpacity={0.75}
+                                style={{
+                                    paddingVertical: 10,
+                                    paddingHorizontal: 12,
+                                    borderRadius: 12,
+                                    borderWidth: 1.5,
+                                    borderColor: needNursingSkill ? colors.primary : colors.border,
+                                    backgroundColor: needNursingSkill ? colors.primary + '12' : colors.surfaceContainerLow,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
+                                <View style={{ flex: 1, marginRight: 8 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={{ fontSize: 13, fontWeight: needNursingSkill ? '800' : '600', color: needNursingSkill ? colors.primary : colors.text }}>
+                                            Cần nghiệp vụ điều dưỡng (Tiêm, truyền, thay băng...)
+                                        </Text>
+                                    </View>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                        Thực hiện thủ thuật y tế theo y lệnh (+50.000đ/người)
+                                    </Text>
+                                </View>
+                                <View
+                                    style={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        borderWidth: 2,
+                                        borderColor: needNursingSkill ? colors.primary : colors.border,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {needNursingSkill && (
+                                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary }} />
+                                    )}
+                                </View>
                             </TouchableOpacity>
                         </View>
+
+                        {/* Cảnh báo chuyên môn y tế khi chọn Cần nghiệp vụ điều dưỡng */}
+                        {needNursingSkill && (
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    backgroundColor: isDark ? '#451a0335' : '#fffbeb',
+                                    borderWidth: 1,
+                                    borderColor: '#f59e0b',
+                                    borderRadius: 10,
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 8,
+                                    marginBottom: 10,
+                                    gap: 8,
+                                }}
+                            >
+                                <AlertTriangle size={15} color="#d97706" />
+                                <Text style={{ fontSize: 11.5, color: '#b45309', fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                                    Hệ thống sẽ ưu tiên ghép nối bạn với các đối tác có chứng chỉ/bằng cấp y tế. Chi phí thù lao có thể cao hơn mức bình thường.
+                                </Text>
+                            </View>
+                        )}
 
                         <View style={{ paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
@@ -1274,7 +1485,7 @@ export default function ChamSocJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -1585,7 +1796,7 @@ export default function ChamSocJobScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: (insets.bottom > 0 ? insets.bottom : 16) + 20 }}>
-                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#ebdffa', marginBottom: 20 }, shadows.card]}>
+                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#e2e8f0', marginBottom: 20 }, shadows.card]}>
                             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Nhập mã ưu đãi của bạn</Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
@@ -1622,10 +1833,10 @@ export default function ChamSocJobScreen() {
                                 return (
                                     <View
                                         key={v.code}
-                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#ebdffa'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
+                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#e2e8f0'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
                                     >
                                         <View style={{ flexDirection: 'row', gap: 12 }}>
-                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#f3e8ff'), alignItems: 'center', justifyContent: 'center' }}>
+                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#eff6ff'), alignItems: 'center', justifyContent: 'center' }}>
                                                 <Ticket size={22} color={isCurrentSelected ? '#10b981' : colors.primary} />
                                             </View>
                                             <View style={{ flex: 1 }}>

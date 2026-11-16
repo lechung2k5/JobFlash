@@ -98,7 +98,7 @@ export default function ChatScreen() {
             'Chọn nguồn tải ảnh hiện trường lên lưu trữ S3:',
             [
                 {
-                    text: 'Chụp ảnh từ Camera 📸',
+                    text: 'Chụp ảnh từ Camera',
                     onPress: () => {
                         const newImgMsg: MessageItem = {
                             id: Date.now(),
@@ -110,7 +110,7 @@ export default function ChatScreen() {
                     },
                 },
                 {
-                    text: 'Chọn từ Thư viện ảnh 🖼️',
+                    text: 'Chọn từ Thư viện ảnh',
                     onPress: () => {
                         const newImgMsg: MessageItem = {
                             id: Date.now(),
@@ -160,7 +160,7 @@ export default function ChatScreen() {
                         paddingHorizontal: 16,
                         paddingVertical: 12,
                         borderBottomWidth: 1,
-                        borderBottomColor: '#f3e8ff',
+                        borderBottomColor: '#e2e8f0',
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -179,10 +179,10 @@ export default function ChatScreen() {
                             style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
-                            <ArrowLeft size={18} color="#1f182d" />
+                            <ArrowLeft size={18} color="#0f172a" />
                         </TouchableOpacity>
 
-                        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#6f00c5', alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' }}>
                             <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 13 }}>{partner.initials}</Text>
                         </View>
 
@@ -230,7 +230,7 @@ export default function ChatScreen() {
                             >
                                 {isMe ? (
                                     <LinearGradient
-                                        colors={['#6f00c5', '#df1875']}
+                                        colors={['#1d4ed8', '#2563eb']}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
                                         style={{
@@ -239,7 +239,7 @@ export default function ChatScreen() {
                                             paddingVertical: 12,
                                             borderRadius: 20,
                                             borderBottomRightRadius: 4,
-                                            shadowColor: '#6f00c5',
+                                            shadowColor: '#2563eb',
                                             shadowOffset: { width: 0, height: 2 },
                                             shadowOpacity: 0.2,
                                             shadowRadius: 6,
@@ -273,7 +273,7 @@ export default function ChatScreen() {
                                                 borderBottomLeftRadius: 4,
                                                 backgroundColor: '#ffffff',
                                                 borderWidth: 1,
-                                                borderColor: '#f3e8ff',
+                                                borderColor: '#e2e8f0',
                                             },
                                             THEME.shadows.card,
                                         ]}
@@ -304,7 +304,7 @@ export default function ChatScreen() {
                         paddingHorizontal: 12,
                         paddingVertical: 10,
                         borderTopWidth: 1,
-                        borderTopColor: '#f3e8ff',
+                        borderTopColor: '#e2e8f0',
                         backgroundColor: '#ffffff',
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -316,7 +316,7 @@ export default function ChatScreen() {
                         onPress={handlePickAndSendImage}
                         style={{ padding: 6 }}
                     >
-                        <Camera size={22} color="#6f00c5" />
+                        <Camera size={22} color="#2563eb" />
                     </TouchableOpacity>
 
                     <TextInput
@@ -328,10 +328,10 @@ export default function ChatScreen() {
                             flex: 1,
                             paddingHorizontal: 16,
                             paddingVertical: 10,
-                            backgroundColor: '#faf5ff',
+                            backgroundColor: '#f8fafc',
                             borderRadius: 9999,
                             borderWidth: 1,
-                            borderColor: '#e9d5ff',
+                            borderColor: '#cbd5e1',
                             fontSize: 13,
                             color: '#0f172a',
                         }}
@@ -344,7 +344,7 @@ export default function ChatScreen() {
                             width: 40,
                             height: 40,
                             borderRadius: 20,
-                            backgroundColor: '#6f00c5',
+                            backgroundColor: '#2563eb',
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}
@@ -394,22 +394,22 @@ export default function ChatScreen() {
                             style={{
                                 padding: 16,
                                 borderRadius: 20,
-                                backgroundColor: '#f5f3ff',
+                                backgroundColor: '#eff6ff',
                                 borderWidth: 1.5,
-                                borderColor: '#c084fc',
+                                borderColor: '#93c5fd',
                                 flexDirection: 'row',
                                 alignItems: 'center',
                                 gap: 14,
                             }}
                         >
-                            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#6f00c5', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' }}>
                                 <Globe size={22} color="#ffffff" />
                             </View>
                             <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: 14, fontWeight: '700', color: '#581c87' }}>
+                                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e40af' }}>
                                     Gọi trực tiếp qua Ứng dụng (Internet)
                                 </Text>
-                                <Text style={{ fontSize: 11, color: '#7e22ce', marginTop: 2 }}>
+                                <Text style={{ fontSize: 11, color: '#1d4ed8', marginTop: 2 }}>
                                     Miễn phí, chất lượng âm thanh HD (Khuyên dùng khi có Wi-Fi/4G)
                                 </Text>
                             </View>

@@ -285,7 +285,7 @@ export default function WorkerWalletScreen() {
                                         justifyContent: 'center',
                                     }}
                                 >
-                                    <QrCode size={180} color="#1f182d" />
+                                    <QrCode size={180} color="#0f172a" />
                                 </View>
                             </View>
 

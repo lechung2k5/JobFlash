@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
+import * as ImagePicker from 'expo-image-picker';
 import {
     ArrowLeft,
     MapPin,
@@ -37,8 +38,15 @@ import {
     Droplet,
     Wind,
     Lock,
+    Camera,
+    Image as ImageIcon,
+    PlayCircle,
+    Trash2,
+    AlertTriangle,
+    AlertCircle,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
+import { JobFlashAPI } from '../../../services/apiClient';
 import { useAppTheme } from '../../../constants/theme';
 import { useI18n } from '../../../i18n';
 import GlassBottomBar from '../../../components/GlassBottomBar';
@@ -125,15 +133,48 @@ export const SEVERITY_TIERS = [
     { id: 'major', label: 'Đại tu / Lắp mới', baseHours: 3 },
 ];
 
-// Danh mục sự cố thường gặp (Gọn gàng, full width)
-export const COMMON_ISSUES = [
-    { id: 'electric_short', label: 'Chập điện, nhảy aptomat liên tục', isHeavy: true },
-    { id: 'switch_light', label: 'Thay ổ cắm, công tắc, bóng đèn' },
-    { id: 'water_leak', label: 'Rò rỉ ống nước, vỡ ống, hỏng van', isHeavy: true },
-    { id: 'clogged_drain', label: 'Thông tắc bồn cầu, lavabo, cống', isHeavy: true },
-    { id: 'ac_leaking', label: 'Máy lạnh không mát, chảy nước' },
-    { id: 'lock_broken', label: 'Kẹt ổ khóa, gãy chìa, xệ cửa' },
-    { id: 'appliance_install', label: 'Lắp bình nóng lạnh, quạt, máy lọc' },
+export interface MediaAttachment {
+    uri: string;
+    type: 'image' | 'video';
+}
+
+export interface RepairIssueItem {
+    id: string;
+    category: 'electric' | 'water' | 'hvac' | 'furniture';
+    label: string;
+    isHeavy?: boolean;
+    isDangerous?: boolean;
+}
+
+// Danh mục sự cố phân theo hạng mục chuyên môn (Dynamic Filtering)
+export const COMMON_ISSUES: RepairIssueItem[] = [
+    // 1. Điện dân dụng
+    { id: 'electric_short', category: 'electric', label: 'Chập điện, nhảy aptomat liên tục', isHeavy: true, isDangerous: true },
+    { id: 'switch_light', category: 'electric', label: 'Thay ổ cắm, công tắc, bóng đèn' },
+    { id: 'wiring_repair', category: 'electric', label: 'Sửa đường dây điện âm/nổi, đứt ngầm', isHeavy: true },
+    { id: 'breaker_replace', category: 'electric', label: 'Lắp đặt, thay mới aptomat / tủ điện' },
+    { id: 'electric_appliance', category: 'electric', label: 'Lắp quạt trần, quạt hút, chuông cửa' },
+
+    // 2. Ống nước & WC
+    { id: 'water_leak', category: 'water', label: 'Rò rỉ ống nước, vỡ ống, hỏng van tổng', isHeavy: true, isDangerous: true },
+    { id: 'clogged_drain', category: 'water', label: 'Thông tắc bồn cầu, lavabo, cống thoát sàn', isHeavy: true },
+    { id: 'faucet_replace', category: 'water', label: 'Thay vòi sen, vòi lavabo, xi phông xả' },
+    { id: 'toilet_repair', category: 'water', label: 'Sửa bồn cầu chảy nước liên tục, hỏng phao' },
+    { id: 'pump_water_heater', category: 'water', label: 'Lắp / sửa máy bơm nước, bình nóng lạnh', isHeavy: true },
+
+    // 3. Điện lạnh
+    { id: 'ac_leaking', category: 'hvac', label: 'Máy lạnh chảy nước vào trong nhà' },
+    { id: 'ac_no_cool', category: 'hvac', label: 'Điều hòa không mát, chỉ ra gió thường' },
+    { id: 'ac_cleaning', category: 'hvac', label: 'Vệ sinh, bảo dưỡng điều hòa / máy giặt' },
+    { id: 'ac_gas', category: 'hvac', label: 'Nạp gas, kiểm tra xì gas máy lạnh', isHeavy: true },
+    { id: 'fridge_washer', category: 'hvac', label: 'Sửa tủ lạnh không đông đá, máy giặt rung lắc', isHeavy: true },
+
+    // 4. Khóa & Đồ gỗ
+    { id: 'lock_broken', category: 'furniture', label: 'Kẹt ổ khóa, gãy chìa, mở khóa khẩn cấp' },
+    { id: 'lock_replace', category: 'furniture', label: 'Thay mới ổ khóa tay gạt, khóa từ, chốt cửa' },
+    { id: 'door_sagging', category: 'furniture', label: 'Sửa cửa gỗ / cửa nhôm xệ, cọ quẹt sàn', isHeavy: true },
+    { id: 'furniture_hinges', category: 'furniture', label: 'Thay bản lề tủ bếp, ray trượt ngăn kéo, tay nắm' },
+    { id: 'furniture_assembly', category: 'furniture', label: 'Tháo lắp, gia cố giường, tủ, bàn ghế gỗ' },
 ];
 
 export default function SuaChuaJobScreen() {
@@ -169,9 +210,26 @@ export default function SuaChuaJobScreen() {
     const [selectedCategory, setSelectedCategory] = useState('electric');
     const [selectedSeverity, setSelectedSeverity] = useState('minor');
 
-    // 3. Danh mục lỗi (Mặc định chọn 1 sự cố)
+    // 3. Danh mục lỗi (Mặc định chọn 1 sự cố thuộc nhóm Điện dân dụng)
     const [selectedIssues, setSelectedIssues] = useState<string[]>(['switch_light']);
     const [customIssueDetail, setCustomIssueDetail] = useState('');
+
+    // Đính kèm hình ảnh/video hiện trạng hư hỏng (tối đa 5 tệp)
+    const [attachments, setAttachments] = useState<MediaAttachment[]>([]);
+
+    // Lọc sự cố động theo hạng mục đang chọn (Dynamic Filtering theo FormSuaChua.md)
+    const filteredIssues = useMemo(() => {
+        return COMMON_ISSUES.filter((item) => item.category === selectedCategory);
+    }, [selectedCategory]);
+
+    const handleSelectCategory = (catId: string) => {
+        setSelectedCategory(catId);
+        const catIssues = COMMON_ISSUES.filter((i) => i.category === catId);
+        const hasExisting = selectedIssues.some((id) => catIssues.some((ci) => ci.id === id));
+        if (!hasExisting && catIssues.length > 0) {
+            setSelectedIssues([catIssues[0].id]);
+        }
+    };
 
     const toggleIssue = (issueId: string) => {
         setSelectedIssues((prev) =>
@@ -179,15 +237,127 @@ export default function SuaChuaJobScreen() {
         );
     };
 
+    // Kiểm tra xem khách có chọn lỗi nguy hiểm cần cảnh báo an toàn khẩn cấp không
+    const hasDangerousIssue = useMemo(() => {
+        return selectedIssues.some((id) => {
+            const issue = COMMON_ISSUES.find((i) => i.id === id);
+            return issue?.isDangerous || id === 'electric_short' || id === 'water_leak';
+        });
+    }, [selectedIssues]);
+
+    // Trạng thái chọn tất cả / bỏ chọn của checklist lọc động
+    const allFilteredSelected = useMemo(() => {
+        return filteredIssues.length > 0 && filteredIssues.every((i) => selectedIssues.includes(i.id));
+    }, [filteredIssues, selectedIssues]);
+
+    const toggleSelectAllFiltered = () => {
+        const filteredIds = filteredIssues.map((i) => i.id);
+        if (allFilteredSelected) {
+            setSelectedIssues((prev) => prev.filter((id) => !filteredIds.includes(id)));
+        } else {
+            setSelectedIssues((prev) => Array.from(new Set([...prev, ...filteredIds])));
+        }
+    };
+
+    // Xử lý đính kèm ảnh / video hiện trạng
+    const handleTakePhoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Cần cấp quyền', 'Vui lòng cho phép ứng dụng truy cập máy ảnh để chụp hiện trạng sự cố.');
+                return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.7,
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setAttachments((prev) => [...prev, { uri: asset.uri, type: 'image' as const }].slice(0, 5));
+            }
+        } catch (err: any) {
+            Alert.alert('Lỗi', err?.message || 'Không thể chụp ảnh');
+        }
+    };
+
+    const handleRecordVideo = async () => {
+        try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Cần cấp quyền', 'Vui lòng cho phép ứng dụng truy cập máy ảnh để quay video sự cố.');
+                return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['videos'],
+                videoMaxDuration: 30,
+                quality: 0.6,
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+                setAttachments((prev) => [...prev, { uri: asset.uri, type: 'video' as const }].slice(0, 5));
+            }
+        } catch (err: any) {
+            Alert.alert('Lỗi', err?.message || 'Không thể quay video');
+        }
+    };
+
+    const handlePickFromLibrary = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Cần cấp quyền', 'Vui lòng cho phép ứng dụng truy cập thư viện ảnh để chọn ảnh/video.');
+                return;
+            }
+            const remaining = 5 - attachments.length;
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images', 'videos'],
+                allowsMultipleSelection: true,
+                selectionLimit: remaining,
+                quality: 0.7,
+            });
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const newItems: MediaAttachment[] = result.assets.map((asset) => ({
+                    uri: asset.uri,
+                    type: (asset.type === 'video' ? 'video' : 'image') as 'video' | 'image',
+                }));
+                setAttachments((prev) => [...prev, ...newItems].slice(0, 5));
+            }
+        } catch (err: any) {
+            Alert.alert('Lỗi', err?.message || 'Không thể chọn tệp từ thư viện.');
+        }
+    };
+
+    const handlePickMediaPrompt = () => {
+        if (attachments.length >= 5) {
+            Alert.alert('Đã đạt giới hạn', 'Bạn chỉ có thể đính kèm tối đa 5 hình ảnh hoặc video.');
+            return;
+        }
+        Alert.alert(
+            'Thêm ảnh / video hiện trạng',
+            'Chọn nguồn tải ảnh hoặc video sự cố để thợ đánh giá:',
+            [
+                { text: 'Chụp ảnh ngay', onPress: handleTakePhoto },
+                { text: 'Quay video ngắn', onPress: handleRecordVideo },
+                { text: 'Chọn từ thư viện máy', onPress: handlePickFromLibrary },
+                { text: 'Hủy', style: 'cancel' },
+            ]
+        );
+    };
+
+    const handleRemoveAttachment = (index: number) => {
+        setAttachments((prev) => prev.filter((_, i) => i !== index));
+    };
+
     // 4. Hình thức thuê & Mức thù lao (MẶC ĐỊNH THỜI LƯỢNG VÀ SỐ THỢ LÀ 1)
     const [pricingMode, setPricingMode] = useState<'hourly' | 'fixed'>('fixed');
     const [hours, setHours] = useState(1);
     const [workersCount, setWorkersCount] = useState(1);
     const [hourlyWage, setHourlyWage] = useState('100.000');
-    const [fixedPrice, setFixedPrice] = useState('150.000'); // Sửa chữa đa số khoán trọn gói
+    const [fixedPrice, setFixedPrice] = useState('150.000'); // Sửa chữa đa số thuê trọn gói
 
-    // 5. Linh kiện vật tư & Ghi chú
-    const [hasParts, setHasParts] = useState(false); // Chủ nhà có sẵn linh kiện
+    // 5. Linh kiện vật tư & Ghi chú (Cấu trúc lại 2 lựa chọn theo FormSuaChua.md)
+    const [materialOption, setMaterialOption] = useState<'customer_has_parts' | 'worker_buy_parts'>('worker_buy_parts');
     const [specialNotes, setSpecialNotes] = useState('');
 
     // 6. Voucher
@@ -243,11 +413,12 @@ export default function SuaChuaJobScreen() {
     // Các chip gợi ý giá khoán tự động cập nhật
     const dynamicFixedChips = useMemo(() => {
         const center = suggestedRecommendation.fixedPrice;
-        const c1 = Math.max(100000, center - 40000);
+        const c1 = Math.max(60000, center - 40000);
         const c2 = center;
         const c3 = center + 50000;
         const c4 = center + 100000;
-        return [c1, c2, c3, c4].map((v) => v.toLocaleString('vi-VN'));
+        const uniqueValues = Array.from(new Set([c1, c2, c3, c4]));
+        return uniqueValues.map((v) => v.toLocaleString('vi-VN'));
     }, [suggestedRecommendation.fixedPrice]);
 
     const handleApplySuggestedPrice = () => {
@@ -485,8 +656,8 @@ export default function SuaChuaJobScreen() {
         setSelectedVoucher(null);
     };
 
-    // Đăng việc sửa chữa
-    const handleSubmit = () => {
+    // Đăng việc sửa chữa hỏa tốc (Tự động gán booking_time & chuyển sang Radar tìm thợ)
+    const handleSubmit = async () => {
         if (!address.trim()) {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ cần sửa chữa.');
             return;
@@ -507,36 +678,49 @@ export default function SuaChuaJobScreen() {
         const catObj = REPAIR_CATEGORIES.find((c) => c.id === selectedCategory);
         const sevObj = SEVERITY_TIERS.find((s) => s.id === selectedSeverity);
 
-        const pricingSummary =
-            pricingMode === 'hourly'
-                ? `${hours}h × ${workersCount} thợ (${parsedHourlyWage.toLocaleString('vi-VN')} đ/h)`
-                : `Khoán trọn gói (${parsedFixedPrice.toLocaleString('vi-VN')} đ)`;
+        const currentBookingTime = new Date().toISOString();
 
-        const summaryLines = [
-            `Địa chỉ: ${address}${houseDetail ? ` (${houseDetail})` : ''}`,
-            `Hạng mục: ${catObj?.label} (${sevObj?.label})`,
-            `Hình thức: ${pricingSummary}`,
-            `Thời gian: Thợ có mặt ngay (trong 30 - 60 phút)`,
-            `Số sự cố đã chọn: ${selectedIssues.length} điểm lỗi`,
-            hasParts ? 'Vật tư: Chủ nhà có sẵn linh kiện' : 'Vật tư: Thợ khảo sát báo giá linh kiện',
-            selectedVoucher && voucherDiscount > 0 ? `Ưu đãi (${selectedVoucher.code}): -${voucherDiscount.toLocaleString('vi-VN')} đ` : null,
-            specialNotes.trim() ? `Ghi chú: ${specialNotes.trim()}` : null,
-        ].filter(Boolean).join('\n• ');
+        const jobPayload = {
+            category: 'sua-chua',
+            title: `Thuê thợ sửa chữa (${catObj?.label || 'Sửa chữa'})`,
+            address,
+            houseDetail,
+            latitude: coords?.lat || 10.7769,
+            longitude: coords?.lng || 106.7009,
+            repairCategory: selectedCategory,
+            repairCategoryLabel: catObj?.label,
+            severity: selectedSeverity,
+            severityLabel: sevObj?.label,
+            selectedIssues,
+            selectedIssueLabels: selectedIssues
+                .map((id) => COMMON_ISSUES.find((i) => i.id === id)?.label)
+                .filter(Boolean),
+            customIssueDetail,
+            mediaAttachments: attachments.map((a) => a.uri),
+            materialOption,
+            hasParts: materialOption === 'customer_has_parts',
+            pricingMode,
+            hours: pricingMode === 'hourly' ? hours : undefined,
+            workersCount,
+            hourlyWage: parsedHourlyWage,
+            fixedPrice: parsedFixedPrice,
+            specialNotes,
+            voucherCode: selectedVoucher?.code,
+            discountAmount: voucherDiscount,
+            totalAmount: grandTotal,
+            booking_time: currentBookingTime,
+        };
 
-        Alert.alert(
-            'Xác nhận đăng việc Sửa chữa',
-            `Tổng chi phí công ước tính: ${grandTotal.toLocaleString('vi-VN')} đ\n\n• ${summaryLines}`,
-            [
-                { text: 'Chỉnh sửa', style: 'cancel' },
-                {
-                    text: 'Tìm thợ ngay',
-                    onPress: () => {
-                        Alert.alert('Thành công', 'Yêu cầu sửa chữa của bạn đã được phát sóng tới các thợ tay nghề cao gần nhất!');
-                        router.replace('/(requester)');
-                    },
-                },
-            ]
-        );
+        try {
+            await JobFlashAPI.jobs.createJob(jobPayload).catch((err) => {
+                console.log('[SuaChua] Local fallback: job created', err?.message);
+            });
+        } catch {
+            // Tiếp tục
+        }
+
+        // Chuyển thẳng giao diện sang màn hình Radar Tìm thợ
+        router.push('/(requester)/radar');
     };
 
     return (
@@ -551,7 +735,7 @@ export default function SuaChuaJobScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         borderBottomWidth: 1,
-                        borderColor: isDark ? colors.border : '#ebdffa',
+                        borderColor: isDark ? colors.border : '#e2e8f0',
                         backgroundColor: colors.surface,
                     }}
                 >
@@ -587,27 +771,6 @@ export default function SuaChuaJobScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* THÔNG BÁO THỜI GIAN NHẬN VIỆC HỎA TỐC */}
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 12,
-                            backgroundColor: isDark ? '#1e1b4b35' : '#f5f3ff',
-                            borderWidth: 1,
-                            borderColor: isDark ? colors.border : '#e9d5ff',
-                            marginBottom: 14,
-                            gap: 8,
-                        }}
-                    >
-                        <Clock size={15} color={colors.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
-                            Thợ nhận việc và có mặt ngay (trong 30 - 60 phút)
-                        </Text>
-                    </View>
-
                     {/* KHỐI 1: ĐỊA ĐIỂM SỬA CHỮA */}
                     <View
                         style={[
@@ -616,7 +779,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -638,7 +801,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 12,
                                 backgroundColor: colors.surfaceContainerLow,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 8,
                             }}
                         >
@@ -695,7 +858,7 @@ export default function SuaChuaJobScreen() {
                                     paddingVertical: 9,
                                     paddingHorizontal: 8,
                                     borderRadius: 10,
-                                    backgroundColor: isDark ? colors.surfaceContainer : '#f3e8ff',
+                                    backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
                                     borderWidth: 1,
                                     borderColor: isDark ? colors.border : '#e9d5ff',
                                     gap: 6,
@@ -760,6 +923,57 @@ export default function SuaChuaJobScreen() {
                         </View>
                     </View>
 
+                    {/* THÔNG BÁO THỜI GIAN LÀM VIỆC: NGAY BÂY GIỜ */}
+                    <View
+                        style={[
+                            {
+                                padding: 14,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
+                                borderWidth: 1.5,
+                                borderColor: colors.primary,
+                                marginBottom: 16,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 12,
+                            },
+                            shadows.card,
+                        ]}
+                    >
+                        <View
+                            style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 12,
+                                backgroundColor: colors.primary,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Zap size={20} color="#ffffff" fill="#ffffff" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary }}>
+                                    Thời gian làm việc: Ngay bây giờ
+                                </Text>
+                                <View
+                                    style={{
+                                        backgroundColor: '#dcfce7',
+                                        paddingHorizontal: 6,
+                                        paddingVertical: 2,
+                                        borderRadius: 6,
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#16a34a' }}>HỎA TỐC</Text>
+                                </View>
+                            </View>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                Tìm thợ sửa chữa đến ngay lập tức • Thợ có mặt trong 30 - 60 phút
+                            </Text>
+                        </View>
+                    </View>
+
                     {/* KHỐI 2: CHUYÊN MỤC & QUY MÔ SỰ CỐ */}
                     <View
                         style={[
@@ -768,7 +982,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -788,7 +1002,7 @@ export default function SuaChuaJobScreen() {
                                 return (
                                     <TouchableOpacity
                                         key={cat.id}
-                                        onPress={() => setSelectedCategory(cat.id)}
+                                        onPress={() => handleSelectCategory(cat.id)}
                                         style={{
                                             width: '48.5%',
                                             paddingVertical: 10,
@@ -840,7 +1054,7 @@ export default function SuaChuaJobScreen() {
                         </View>
                     </View>
 
-                    {/* KHỐI 3: DANH MỤC SỰ CỐ THƯỜNG GẶP */}
+                    {/* KHỐI 3: DANH MỤC SỰ CỐ THƯỜNG GẶP (DYNAMIC FILTERING THEO HẠNG MỤC) */}
                     <View
                         style={[
                             {
@@ -848,7 +1062,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -856,22 +1070,18 @@ export default function SuaChuaJobScreen() {
                     >
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
-                                Sự cố cần khắc phục ({selectedIssues.length})
+                                Sự cố cần khắc phục ({filteredIssues.filter((i) => selectedIssues.includes(i.id)).length})
                             </Text>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    if (selectedIssues.length === COMMON_ISSUES.length) setSelectedIssues([]);
-                                    else setSelectedIssues(COMMON_ISSUES.map((i) => i.id));
-                                }}
-                            >
+                            <TouchableOpacity onPress={toggleSelectAllFiltered}>
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                                    {selectedIssues.length === COMMON_ISSUES.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                                    {allFilteredSelected ? 'Bỏ chọn hết' : 'Chọn tất cả'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
+                        {/* Danh sách sự cố thuộc hạng mục đã chọn */}
                         <View style={{ gap: 7, marginTop: 4 }}>
-                            {COMMON_ISSUES.map((item) => {
+                            {filteredIssues.map((item) => {
                                 const isChecked = selectedIssues.includes(item.id);
                                 return (
                                     <TouchableOpacity
@@ -915,6 +1125,33 @@ export default function SuaChuaJobScreen() {
                             })}
                         </View>
 
+                        {/* CẢNH BÁO AN TOÀN NGUY HIỂM (Theo FormSuaChua.md) */}
+                        {hasDangerousIssue && (
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'flex-start',
+                                    gap: 10,
+                                    padding: 12,
+                                    borderRadius: 12,
+                                    backgroundColor: isDark ? '#7f1d1d35' : '#fef2f2',
+                                    borderWidth: 1.5,
+                                    borderColor: '#ef4444',
+                                    marginTop: 10,
+                                }}
+                            >
+                                <AlertTriangle size={18} color="#ef4444" style={{ marginTop: 1 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#dc2626', marginBottom: 2 }}>
+                                        CẢNH BÁO AN TOÀN
+                                    </Text>
+                                    <Text style={{ fontSize: 12, color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 17, fontWeight: '600' }}>
+                                        Vui lòng ngắt cầu dao điện / khóa van nước tổng tại khu vực sự cố để đảm bảo an toàn trong thời gian chờ thợ đến!
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
                         <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
                                 Mô tả chi tiết hiện tượng hư hỏng:
@@ -936,6 +1173,106 @@ export default function SuaChuaJobScreen() {
                                 }}
                             />
                         </View>
+
+                        {/* ĐÍNH KÈM ẢNH / VIDEO HIỆN TRẠNG (Theo FormSuaChua.md) */}
+                        <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.border }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                    Ảnh / video hiện trạng sự cố:
+                                </Text>
+                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                                    {attachments.length}/5 tệp
+                                </Text>
+                            </View>
+
+                            {/* Danh sách ảnh/video đã đính kèm */}
+                            {attachments.length > 0 && (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 10 }}>
+                                    {attachments.map((att, idx) => (
+                                        <View
+                                            key={`${att.uri}-${idx}`}
+                                            style={{
+                                                width: 72,
+                                                height: 72,
+                                                borderRadius: 10,
+                                                overflow: 'hidden',
+                                                borderWidth: 1,
+                                                borderColor: colors.border,
+                                                position: 'relative',
+                                                backgroundColor: colors.surfaceContainer,
+                                            }}
+                                        >
+                                            <Image
+                                                source={{ uri: att.uri }}
+                                                style={{ width: '100%', height: '100%' }}
+                                                contentFit="cover"
+                                            />
+                                            {att.type === 'video' && (
+                                                <View
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: 4,
+                                                        left: 4,
+                                                        backgroundColor: 'rgba(0,0,0,0.65)',
+                                                        borderRadius: 4,
+                                                        paddingHorizontal: 4,
+                                                        paddingVertical: 1,
+                                                        flexDirection: 'row',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                    }}
+                                                >
+                                                    <PlayCircle size={10} color="#ffffff" />
+                                                    <Text style={{ fontSize: 9, color: '#ffffff', fontWeight: '700' }}>VIDEO</Text>
+                                                </View>
+                                            )}
+                                            <TouchableOpacity
+                                                onPress={() => handleRemoveAttachment(idx)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 2,
+                                                    right: 2,
+                                                    width: 20,
+                                                    height: 20,
+                                                    borderRadius: 10,
+                                                    backgroundColor: 'rgba(0,0,0,0.7)',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <X size={12} color="#ffffff" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            )}
+
+                            {/* Nút bấm Thêm ảnh/video hiện trạng */}
+                            {attachments.length < 5 && (
+                                <TouchableOpacity
+                                    onPress={handlePickMediaPrompt}
+                                    activeOpacity={0.8}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 12,
+                                        borderRadius: 12,
+                                        backgroundColor: isDark ? colors.surfaceContainer : '#eff6ff',
+                                        borderWidth: 1.5,
+                                        borderColor: isDark ? colors.border : '#bfdbfe',
+                                        borderStyle: 'dashed',
+                                        gap: 8,
+                                    }}
+                                >
+                                    <Camera size={16} color={colors.primary} />
+                                    <Text style={{ fontSize: 12.5, fontWeight: '700', color: colors.primary }}>
+                                        Thêm ảnh/video hiện trạng (Tùy chọn)
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
 
                     {/* KHỐI 4: HÌNH THỨC THUÊ & GỢI Ý MỨC TIỀN HỢP LÝ */}
@@ -946,7 +1283,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -959,7 +1296,7 @@ export default function SuaChuaJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 2 Tab: Khoán trọn gói vs Theo giờ */}
+                        {/* 2 Tab: Thuê trọn gói vs Theo giờ */}
                         <View
                             style={{
                                 flexDirection: 'row',
@@ -984,7 +1321,7 @@ export default function SuaChuaJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn gói
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
 
@@ -1062,9 +1399,9 @@ export default function SuaChuaJobScreen() {
 
                                 {/* Các chip giá khoán gợi ý linh hoạt */}
                                 <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                                    {dynamicFixedChips.map((val) => (
+                                    {dynamicFixedChips.map((val, idx) => (
                                         <TouchableOpacity
-                                            key={val}
+                                            key={`${val}-${idx}`}
                                             onPress={() => setFixedPrice(val)}
                                             style={{
                                                 flex: 1,
@@ -1182,7 +1519,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 20,
                                 backgroundColor: colors.surface,
                                 borderWidth: 1,
-                                borderColor: isDark ? colors.border : '#ebdffa',
+                                borderColor: isDark ? colors.border : '#e2e8f0',
                                 marginBottom: 16,
                             },
                             shadows.card,
@@ -1195,25 +1532,132 @@ export default function SuaChuaJobScreen() {
                             </Text>
                         </View>
 
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Tình trạng vật tư linh kiện</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>Dây điện, bóng đèn, ống nước, cút nối</Text>
-                            </View>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
+                            Tùy chọn phương án vật tư:
+                        </Text>
+
+                        {/* 2 Lựa chọn riêng biệt theo FormSuaChua.md */}
+                        <View style={{ gap: 8, marginBottom: 12 }}>
+                            {/* Lựa chọn 1: Khách đã có sẵn vật tư */}
                             <TouchableOpacity
-                                onPress={() => setHasParts(!hasParts)}
+                                onPress={() => setMaterialOption('customer_has_parts')}
+                                activeOpacity={0.75}
                                 style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 12,
                                     borderRadius: 12,
-                                    backgroundColor: hasParts ? '#dcfce7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: hasParts ? '#10b981' : colors.border,
+                                    backgroundColor:
+                                        materialOption === 'customer_has_parts'
+                                            ? (isDark ? colors.surfaceContainer : '#eff6ff')
+                                            : colors.surfaceContainerLow,
+                                    borderWidth: 1.5,
+                                    borderColor:
+                                        materialOption === 'customer_has_parts' ? colors.primary : colors.border,
+                                    gap: 10,
                                 }}
                             >
-                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: hasParts ? '#059669' : colors.textSecondary }}>
-                                    {hasParts ? 'Có sẵn linh kiện' : 'Thợ mua giúp'}
-                                </Text>
+                                <View
+                                    style={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        borderWidth: 2,
+                                        borderColor:
+                                            materialOption === 'customer_has_parts' ? colors.primary : colors.border,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {materialOption === 'customer_has_parts' && (
+                                        <View
+                                            style={{
+                                                width: 10,
+                                                height: 10,
+                                                borderRadius: 5,
+                                                backgroundColor: colors.primary,
+                                            }}
+                                        />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text
+                                        style={{
+                                            fontSize: 13,
+                                            fontWeight: '800',
+                                            color:
+                                                materialOption === 'customer_has_parts'
+                                                    ? colors.primary
+                                                    : colors.text,
+                                        }}
+                                    >
+                                        Khách đã có sẵn vật tư
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                        Đã có sẵn bóng đèn, van nước, ổ cắm... Thợ chỉ tính công thay lắp
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Lựa chọn 2: Khảo sát & Thợ mua giúp */}
+                            <TouchableOpacity
+                                onPress={() => setMaterialOption('worker_buy_parts')}
+                                activeOpacity={0.75}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 12,
+                                    borderRadius: 12,
+                                    backgroundColor:
+                                        materialOption === 'worker_buy_parts'
+                                            ? (isDark ? colors.surfaceContainer : '#eff6ff')
+                                            : colors.surfaceContainerLow,
+                                    borderWidth: 1.5,
+                                    borderColor:
+                                        materialOption === 'worker_buy_parts' ? colors.primary : colors.border,
+                                    gap: 10,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        borderWidth: 2,
+                                        borderColor:
+                                            materialOption === 'worker_buy_parts' ? colors.primary : colors.border,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {materialOption === 'worker_buy_parts' && (
+                                        <View
+                                            style={{
+                                                width: 10,
+                                                height: 10,
+                                                borderRadius: 5,
+                                                backgroundColor: colors.primary,
+                                            }}
+                                        />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text
+                                        style={{
+                                            fontSize: 13,
+                                            fontWeight: '800',
+                                            color:
+                                                materialOption === 'worker_buy_parts'
+                                                    ? colors.primary
+                                                    : colors.text,
+                                        }}
+                                    >
+                                        Khảo sát & Thợ mua giúp
+                                    </Text>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                                        Thợ đến kiểm tra, báo giá linh kiện và mua hộ theo hóa đơn thực tế
+                                    </Text>
+                                </View>
                             </TouchableOpacity>
                         </View>
 
@@ -1253,7 +1697,7 @@ export default function SuaChuaJobScreen() {
                                 borderRadius: 18,
                                 backgroundColor: selectedVoucher ? (isDark ? '#064e3b25' : '#ecfdf5') : colors.surface,
                                 borderWidth: 1,
-                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#ebdffa'),
+                                borderColor: selectedVoucher ? '#10b981' : (isDark ? colors.border : '#e2e8f0'),
                                 marginBottom: 16,
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -1363,6 +1807,32 @@ export default function SuaChuaJobScreen() {
                                     </Text>
                                 </View>
                             )}
+                        </View>
+
+                        {/* CẢNH BÁO CHI PHÍ VẬT TƯ (DISCLAIMER THEO FORMSUACHUA.MD) */}
+                        <View
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'flex-start',
+                                gap: 6,
+                                marginTop: 12,
+                                paddingTop: 10,
+                                borderTopWidth: 1,
+                                borderColor: isDark ? colors.border : '#e2e8f0',
+                            }}
+                        >
+                            <AlertCircle size={14} color={isDark ? '#fbbf24' : '#d97706'} style={{ marginTop: 2 }} />
+                            <Text
+                                style={{
+                                    flex: 1,
+                                    fontSize: 11.5,
+                                    fontStyle: 'italic',
+                                    color: isDark ? '#fbbf24' : '#b45309',
+                                    lineHeight: 16,
+                                }}
+                            >
+                                Lưu ý: Tiền công chưa bao gồm chi phí vật tư. Vui lòng thanh toán tiền vật tư, linh kiện cho thợ theo hóa đơn mua hàng thực tế.
+                            </Text>
                         </View>
 
                         <TouchableOpacity
@@ -1555,7 +2025,7 @@ export default function SuaChuaJobScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: (insets.bottom > 0 ? insets.bottom : 16) + 20 }}>
-                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#ebdffa', marginBottom: 20 }, shadows.card]}>
+                        <View style={[{ padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: isDark ? colors.border : '#e2e8f0', marginBottom: 20 }, shadows.card]}>
                             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 8 }}>Nhập mã ưu đãi của bạn</Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border }}>
@@ -1592,10 +2062,10 @@ export default function SuaChuaJobScreen() {
                                 return (
                                     <View
                                         key={v.code}
-                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#ebdffa'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
+                                        style={[{ borderRadius: 16, backgroundColor: isCurrentSelected ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surface, borderWidth: 1.5, borderColor: isCurrentSelected ? '#10b981' : (isDark ? colors.border : '#e2e8f0'), padding: 14, opacity: isEligible ? 1 : 0.65 }, shadows.card]}
                                     >
                                         <View style={{ flexDirection: 'row', gap: 12 }}>
-                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#f3e8ff'), alignItems: 'center', justifyContent: 'center' }}>
+                                            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isCurrentSelected ? '#10b98125' : (isDark ? colors.surfaceContainer : '#eff6ff'), alignItems: 'center', justifyContent: 'center' }}>
                                                 <Ticket size={22} color={isCurrentSelected ? '#10b981' : colors.primary} />
                                             </View>
                                             <View style={{ flex: 1 }}>

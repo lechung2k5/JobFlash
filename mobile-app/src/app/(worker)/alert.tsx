@@ -133,11 +133,22 @@ export default function WorkerAlertScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
+                    {/* Nút Từ chối (Destructive Button - Section 3) */}
                     <TouchableOpacity
+                        activeOpacity={0.85}
                         onPress={() => router.replace('/(worker)')}
-                        style={{ width: '100%', paddingVertical: 12, alignItems: 'center' }}
+                        style={{
+                            width: '100%',
+                            paddingVertical: 14,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 16,
+                            backgroundColor: colors.surface,
+                            borderWidth: 1.5,
+                            borderColor: colors.error,
+                        }}
                     >
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: colors.error }}>
                             {t('worker.rejectJobBtn')}
                         </Text>
                     </TouchableOpacity>
