@@ -1,0 +1,233 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  REQUESTER
+  WORKER
+  BOTH
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING_KYC
+  DEBT_LOCKED
+  BANNED
+}
+
+enum WageType {
+  PACKAGE
+  HOURLY
+}
+
+enum JobStatus {
+  FINDING_WORKERS
+  ONDUTY
+  COMPLETED
+  CANCELLED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ON_THE_WAY
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum DebtStatus {
+  PAID
+  UNPAID
+}
+
+// -----------------------------------------------------------------------------
+// 1. NGƯỜI DÙNG CHÍNH (USERS)
+// -----------------------------------------------------------------------------
+model User {
+  id           String      @id @default(uuid())
+  phone        String      @unique
+  passwordHash String?
+  fullName     String
+  email        String?
+  address      String?     // Địa chỉ liên hệ / Nơi ở / Điểm thường gọi thợ của Người thuê việc
+  gender       String?     // "MALE", "FEMALE", "OTHER"
+  dateOfBirth  DateTime?   // Ngày sinh
+  role         UserRole    @default(BOTH)
+  activeRole   String      @default("worker") // "requester" hoặc "worker"
+  avatarUrl    String?     // Ảnh đại diện lưu trữ trên Cloudinary
+  status       UserStatus  @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workerProfile WorkerProfile?
+  wallet        UserWallet?
+  debtLogs      DebtLog[]
+  createdJobs   Job[]           @relation("RequesterJobs")
+  assignments   JobAssignment[]
+  messages      Message[]
+
+  @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+// 2. HỒ SƠ THỢ CHUẨN HÓA (WORKER_PROFILES)
+// -----------------------------------------------------------------------------
+model WorkerProfile {
+  userId                  String    @id
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Định danh pháp lý & eKYC
+  idCardNumber            String?   @unique
+  idCardIssueDate         DateTime?
+  idCardIssuePlace        String?
+  idCardFrontUrl          String?
+  idCardBackUrl           String?
+  portraitUrl             String?
+  
+  // Thông tin nhân khẩu & Nơi cư trú
+  dateOfBirth             DateTime?
+  gender                  String?   // "MALE", "FEMALE", "OTHER"
+  permanentAddress        String?
+  currentAddress          String?
+  
+  // Kỹ năng & Kinh nghiệm
+  skills                  String[]  @default([])
+  experienceYears         Int       @default(0)
+  
+  // Tài khoản ngân hàng nhận tiền
+  bankName                String?
+  bankAccountNumber       String?
+  bankAccountHolder       String?
+  
+  // Người liên hệ khẩn cấp
+  emergencyContactName    String?
+  emergencyContactPhone   String?
+  emergencyContactRelation String?
+  
+  // Định vị & Tọa độ thực tế (cho Nearest Worker Search)
+  latitude                Float?
+  longitude               Float?
+  isOnline                Boolean   @default(false)
+  
+  // Tín nhiệm & Hiệu suất
+  ratingAvg               Float     @default(5.0)
+  totalCompletedJobs      Int       @default(0)
+  completionRate          Float     @default(100.0)
+
+  updatedAt               DateTime  @updatedAt
+
+  @@map("worker_profiles")
+}
+
+// -----------------------------------------------------------------------------
+// 3. VÍ NỀN TẢNG & QUẢN LÝ CÔNG NỢ (USER_WALLETS)
+// -----------------------------------------------------------------------------
+model UserWallet {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  depositBalance Decimal   @default(0) @db.Decimal(12, 2) // Tiền thợ nạp trước
+  debtBalance    Decimal   @default(0) @db.Decimal(12, 2) // Nợ hoa hồng 10% ca làm
+  debtLimit      Decimal   @default(200000) @db.Decimal(12, 2) // Hạn mức nợ (200.000đ)
+  debtDueDate    DateTime? // Hạn chót thanh toán nợ
+
+  updatedAt      DateTime  @updatedAt
+
+  @@map("user_wallets")
+}
+
+// -----------------------------------------------------------------------------
+// 4. LỊCH SỬ THU 10% HOA HỒNG (DEBT_LOGS)
+// -----------------------------------------------------------------------------
+model DebtLog {
+  id               String     @id @default(uuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id])
+  jobId            String
+  job              Job        @relation(fields: [jobId], references: [id])
+  
+  jobTotalWage     Decimal    @db.Decimal(12, 2)
+  commissionAmount Decimal    @db.Decimal(12, 2) // 10% của jobTotalWage
+  paymentMethod    String     @default("CASH") // "CASH", "BANK_TRANSFER"
+  status           DebtStatus @default(UNPAID)
+  createdAt        DateTime   @default(now())
+
+  @@map("debt_logs")
+}
+
+// -----------------------------------------------------------------------------
+// 5. CÔNG VIỆC (JOBS)
+// -----------------------------------------------------------------------------
+model Job {
+  id               String          @id @default(uuid())
+  requesterId      String
+  requester        User            @relation("RequesterJobs", fields: [requesterId], references: [id])
+  
+  title            String
+  category         String
+  workersNeeded    Int             @default(1)
+  workersAccepted  Int             @default(0)
+  
+  wageType         WageType        @default(PACKAGE)
+  wagePerWorker    Decimal         @db.Decimal(12, 2)
+  totalWage        Decimal         @db.Decimal(12, 2)
+  
+  // Tọa độ điểm hẹn tập kết
+  latitude         Float
+  longitude        Float
+  address          String
+  
+  status           JobStatus       @default(FINDING_WORKERS)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  assignments      JobAssignment[]
+  debtLogs         DebtLog[]
+  messages         Message[]
+
+  @@map("jobs")
+}
+
+// -----------------------------------------------------------------------------
+// 6. PHÂN BỔ THỢ CHO CUỐC VIỆC (JOB_ASSIGNMENTS)
+// -----------------------------------------------------------------------------
+model JobAssignment {
+  id            String           @id @default(uuid())
+  jobId         String
+  job           Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId      String
+  worker        User             @relation(fields: [workerId], references: [id])
+  
+  status        AssignmentStatus @default(ASSIGNED)
+  proofImageUrl String?          // Ảnh chụp bằng chứng nghiệm thu (Cloudinary)
+  completedAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([jobId, workerId])
+  @@map("job_assignments")
+}
+
+// -----------------------------------------------------------------------------
+// 7. TIN NHẮN CHAT & ẢNH ĐA PHƯƠNG TIỆN (MESSAGES)
+// -----------------------------------------------------------------------------
+model Message {
+  id        String   @id @default(uuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  
+  text      String?
+  imageUrl  String?  // Ảnh đính kèm lưu trên Cloudinary
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}

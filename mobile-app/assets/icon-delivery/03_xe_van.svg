@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+
+<defs>
+  <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#8B35FF"/>
+    <stop offset=".48" stop-color="#E52BCE"/>
+    <stop offset="1" stop-color="#FF263F"/>
+  </linearGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#25105D"/>
+    <stop offset="1" stop-color="#10142E"/>
+  </linearGradient>
+  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F7D8FF"/>
+    <stop offset=".45" stop-color="#A86BFF"/>
+    <stop offset="1" stop-color="#FF456E"/>
+  </linearGradient>
+  <linearGradient id="cargo" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FF4BD8"/>
+    <stop offset="1" stop-color="#E91D42"/>
+  </linearGradient>
+  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="3" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<g stroke="#180D3D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round">
+<circle cx="145" cy="372" r="47" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="145" cy="372" r="22.56" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="145" cy="372" r="3" fill="#FF5BE0"/><circle cx="372" cy="372" r="47" fill="#100D24" stroke="url(#metal)" stroke-width="5"/><circle cx="372" cy="372" r="22.56" fill="#251A48" stroke="#D9A7FF" stroke-width="3"/><circle cx="372" cy="372" r="3" fill="#FF5BE0"/>
+<path d="M72 341 L83 221 Q87 190 121 185 L351 185 Q394 186 411 223 L432 300 L432 344Z" fill="url(#body)"/>
+<path d="M111 207 L230 207 L230 280 L99 280Z" fill="url(#glass)" stroke="url(#metal)" stroke-width="5"/>
+<path d="M244 207 L347 207 Q374 208 387 238 L403 280 L244 280Z" fill="url(#glass)" stroke="url(#metal)" stroke-width="5"/>
+<path d="M245 292 L421 292 L425 337 L244 337Z" fill="url(#cargo)"/>
+<path d="M87 300 L230 300 L230 337 L84 337Z" fill="url(#body)"/>
+<path d="M104 290 L211 290" stroke="#68EFFF" stroke-width="8"/>
+</g>
+</svg>

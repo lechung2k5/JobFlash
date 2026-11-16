@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ThợNhanh 247 - AURA Sync Platform</title>
+<!-- Google Fonts: Syne & Hanken Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..900;1,300..900&amp;family=Syne:wght@400..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- React 18 & ReactDOM -->
+<script crossorigin="" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Tailwind Config adapted for Light Mode Palette -->
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#6f00c5",
+            "primary-container": "#8b2ce6",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#f0dcff",
+            "secondary": "#b5005c",
+            "secondary-container": "#df1875",
+            "on-secondary": "#ffffff",
+            "tertiary": "#4632c0",
+            "background": "#fbf9fd",
+            "surface": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f9f6fc",
+            "surface-container": "#f3effa",
+            "surface-container-high": "#eae3f5",
+            "surface-container-highest": "#e1d7ee",
+            "on-surface": "#1e1b26",
+            "on-surface-variant": "#5a5369",
+            "outline": "#8a819b",
+            "outline-variant": "#e4deed",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6"
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "space-xl": "2rem",
+            "space-lg": "1.5rem",
+            "margin-tablet": "2rem",
+            "gutter": "1rem",
+            "space-sm": "0.75rem",
+            "margin-desktop": "3rem",
+            "space-md": "1rem",
+            "space-2xl": "3rem",
+            "gutter-desktop": "2rem",
+            "gutter-tablet": "1.5rem",
+            "space-2xs": "0.25rem",
+            "margin": "1rem",
+            "space-xs": "0.5rem"
+          },
+          fontFamily: {
+            "headline-lg": ["Syne", "sans-serif"],
+            "display-hero-mobile": ["Syne", "sans-serif"],
+            "title-md": ["Hanken Grotesk", "sans-serif"],
+            "headline-md": ["Syne", "sans-serif"],
+            "body-md": ["Hanken Grotesk", "sans-serif"],
+            "headline-sm": ["Syne", "sans-serif"],
+            "headline-lg-mobile": ["Syne", "sans-serif"],
+            "label-md": ["Hanken Grotesk", "sans-serif"],
+            "label-xs": ["Hanken Grotesk", "sans-serif"],
+            "body-lg": ["Hanken Grotesk", "sans-serif"],
+            "display-hero": ["Syne", "sans-serif"]
+          },
+          fontSize: {
+            "headline-lg": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "display-hero-mobile": ["38px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "800" }],
+            "title-md": ["18px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "headline-md": ["24px", { lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "400" }],
+            "headline-sm": ["20px", { lineHeight: "26px", letterSpacing: "0em", fontWeight: "600" }],
+            "headline-lg-mobile": ["28px", { lineHeight: "34px", letterSpacing: "-0.015em", fontWeight: "700" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.04em", fontWeight: "600" }],
+            "label-xs": ["10px", { lineHeight: "12px", letterSpacing: "0.06em", fontWeight: "700" }],
+            "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "0em", fontWeight: "400" }],
+            "display-hero": ["56px", { lineHeight: "64px", letterSpacing: "-0.03em", fontWeight: "800" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(142, 60, 202, 0.2);
+      border-radius: 9999px;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.3; transform: scale(0.98); }
+      50% { opacity: 0.8; transform: scale(1.04); }
+    }
+    @keyframes radar-sweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 3s infinite ease-in-out;
+    }
+    .animate-radar {
+      animation: radar-sweep 4s linear infinite;
+    }
+  </style>
+</head>
+<body class="bg-[#f3f0f8] text-[#1e1b26] antialiased min-h-screen flex flex-col items-center justify-center p-4 selection:bg-purple-200 selection:text-purple-900 overflow-x-hidden font-body-md">
+<!-- Desktop Ambient Aura Background -->
+<div class="fixed inset-0 pointer-events-none overflow-hidden -z-10 flex items-center justify-center">
+<div class="absolute w-[650px] h-[650px] bg-purple-200/50 rounded-full blur-[140px] -top-32 -left-32"></div>
+<div class="absolute w-[550px] h-[550px] bg-rose-200/40 rounded-full blur-[130px] -bottom-20 -right-20"></div>
+<div class="absolute w-[450px] h-[450px] bg-fuchsia-200/35 rounded-full blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+</div>
+<!-- React Mount Point -->
+<div class="w-full flex flex-col items-center justify-center" id="root"></div>
+<!-- React Logic & UI Code -->
+<script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function Icon({ name, fill = false, className = "" }) {
+      return (
+        <span 
+          className={`material-symbols-outlined select-none ${className}`}
+          style={fill ? { fontVariationSettings: "'FILL' 1" } : {}}
+        >
+          {name}
+        </span>
+      );
+    }
+
+    function App() {
+      // Core states
+      const [currentScreen, setCurrentScreen] = useState('role-select');
+      const [userRole, setUserRole] = useState(null); // 'requester' | 'worker'
+      const [phone, setPhone] = useState('0912 345 678');
+      const [otpSent, setOtpSent] = useState(false);
+      const [otpValues, setOtpValues] = useState(['1', '2', '3', '4']);
+      const [workerOnline, setWorkerOnline] = useState(true);
+      const [jobCount, setJobCount] = useState(3);
+      const [wageType, setWageType] = useState('package');
+      const [showToast, setShowToast] = useState(null);
+      const [chatMessages, setChatMessages] = useState([
+        { id: 1, sender: 'worker', text: 'Chào anh, em đang chạy tới địa điểm bốc xếp đây ạ!' },
+        { id: 2, sender: 'requester', text: 'Ok em nhé, cổng số 2 đường Nguyễn Hữu Thọ, tới alo anh.' },
+        { id: 3, sender: 'worker', text: 'Dạ tầm 5 phút nữa em tới ngay ạ.' }
+      ]);
+      const [newMsg, setNewMsg] = useState('');
+
+      const triggerToast = (msg) => {
+        setShowToast(msg);
+        setTimeout(() => setShowToast(null), 3200);
+      };
+
+      // Splash auto redirect simulation
+      useEffect(() => {
+        if (currentScreen === 'splash') {
+          const timer = setTimeout(() => {
+            setCurrentScreen('role-select');
+          }, 2400);
+          return () => clearTimeout(timer);
+        }
+      }, [currentScreen]);
+
+      const handleSendChat = (e) => {
+        e?.preventDefault();
+        if (!newMsg.trim()) return;
+        const msg = {
+          id: Date.now(),
+          sender: userRole === 'worker' ? 'worker' : 'requester',
+          text: newMsg
+        };
+        setChatMessages(prev => [...prev, msg]);
+        setNewMsg('');
+      };
+
+      // Helper for screens where BottomBar is contextual
+      const isTopLevelRequester = ['req-home', 'shared-noti', 'shared-profile'].includes(currentScreen) && userRole === 'requester';
+      const isTopLevelWorker = ['work-home', 'work-wallet', 'shared-profile'].includes(currentScreen) && userRole === 'worker';
+      const showBottomBar = isTopLevelRequester || isTopLevelWorker;
+
+      return (
+        <div className="relative w-full flex flex-col items-center">
+          
+          {/* iOS Device Outer Frame with Premium Silver / Titanium Finish */}
+          <div className="w-full max-w-[400px] h-[830px] relative overflow-hidden border-[7px] border-slate-800/90 rounded-[2.8rem] shadow-[0_25px_60px_-15px_rgba(79,42,120,0.25),0_15px_30px_rgba(0,0,0,0.12)] bg-[#faf8fc] flex flex-col text-slate-800">
+            
+            {/* Ambient Subtle Radial Glass Inside Screen */}
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-rose-50/30 z-0"></div>
+
+            {/* iOS Status Bar & Dynamic Island (Light Mode) */}
+            <div className="relative z-30 pt-3 px-6 pb-2 flex justify-between items-center bg-white/80 backdrop-blur-md border-b border-purple-100/50">
+              <span className="text-[13px] font-title-md font-bold tracking-tight text-slate-800">09:41</span>
+              
+              {/* Dynamic Island Pill */}
+              <div className="w-26 h-6 bg-slate-900 rounded-full flex items-center justify-between px-2.5 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                </div>
+              </div>
+
+              {/* Status Icons */}
+              <div className="flex items-center space-x-1.5 text-slate-700">
+                <Icon name="signal_cellular_alt" className="text-[14px]" />
+                <Icon name="wifi" className="text-[14px]" />
+                <Icon name="battery_full" className="text-[16px] text-emerald-600" fill={true} />
+              </div>
+            </div>
+
+            {/* Discreet Reviewer Screen Selector Switcher */}
+            <div className="relative z-30 px-3 py-1.5 bg-purple-50/90 backdrop-blur-md border-b border-purple-200/50 flex items-center justify-between gap-1 text-[11px]">
+              <span className="font-label-xs text-purple-700 flex items-center gap-1 font-bold whitespace-nowrap">
+                <Icon name="layers" className="text-sm" /> MÀN HÌNH:
+              </span>
+              <select 
+                value={currentScreen} 
+                onChange={(e) => {
+                  const s = e.target.value;
+                  setCurrentScreen(s);
+                  if (s.startsWith('req-')) setUserRole('requester');
+                  if (s.startsWith('work-')) setUserRole('worker');
+                }}
+                className="bg-white text-slate-800 rounded-full py-0.5 px-2 text-[11px] font-semibold border border-purple-200 shadow-sm focus:ring-1 focus:ring-purple-600 w-full max-w-[240px] truncate"
+              >
+                <option value="splash">1. Khởi động (Splash)</option>
+                <option value="role-select">2. Chọn vai trò (Role Select)</option>
+                <option value="login">3. Đăng nhập OTP (Login)</option>
+                <option value="profile-setup">4. Cập nhật hồ sơ (Profile Setup)</option>
+                <option value="req-home">5. [Thuê] Trang chủ (Req Home)</option>
+                <option value="req-create">6. [Thuê] Đăng việc mới (Req Create)</option>
+                <option value="req-radar">7. [Thuê] Radar tìm thợ (Req Radar)</option>
+                <option value="req-tracking">8. [Thuê] Giám sát công việc (Req Tracking)</option>
+                <option value="work-home">9. [Thợ] Bảng việc làm (Work Home)</option>
+                <option value="work-alert">10. [Thợ] Nổ cuốc việc mới (Work Alert)</option>
+                <option value="work-onduty">11. [Thợ] Đang thực hiện (Work OnDuty)</option>
+                <option value="work-proof">12. [Thợ] Báo cáo nghiệm thu (Work Proof)</option>
+                <option value="work-wallet">13. [Thợ] Ví thu nhập (Work Wallet)</option>
+                <option value="shared-chat">14. [Chung] Chat đối tác (Shared Chat)</option>
+                <option value="shared-noti">15. [Chung] Thông báo (Shared Noti)</option>
+                <option value="shared-profile">16. [Chung] Hồ sơ cá nhân (Shared Profile)</option>
+              </select>
+            </div>
+
+            {/* Top Notification Toast Floating Popup */}
+            {showToast && (
+              <div className="absolute top-20 left-4 right-4 z-50 bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white px-4 py-2.5 rounded-2xl shadow-[0_10px_25px_rgba(111,0,197,0.35)] flex items-center justify-between animate-bounce">
+                <div className="flex items-center gap-2">
+                  <Icon name="check_circle" className="text-xl" fill={true} />
+                  <span className="text-xs font-semibold">{showToast}</span>
+                </div>
+                <button onClick={() => setShowToast(null)} className="text-white/80 hover:text-white">
+                  <Icon name="close" className="text-sm" />
+                </button>
+              </div>
+            )}
+
+            {/* Main Interactive Screen Canvas Container */}
+            <div className="flex-1 overflow-y-auto relative z-10 flex flex-col pb-16">
+              
+              {/* ============================================================== */}
+              {/* SCREEN 1: SPLASH                                              */}
+              {/* ============================================================== */}
+              {currentScreen === 'splash' && (
+                <div className="flex-1 flex flex-col justify-between items-center text-center p-8 bg-gradient-to-b from-purple-100 via-white to-pink-50 text-slate-800 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-300/30 via-transparent to-transparent"></div>
+                  
+                  <div className="pt-20 z-10">
+                    <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-purple-600 to-rose-500 p-0.5 shadow-[0_15px_35px_rgba(111,0,197,0.3)] flex items-center justify-center animate-pulse-slow">
+                      <div className="w-full h-full bg-white rounded-3xl flex items-center justify-center">
+                        <Icon name="bolt" className="text-5xl text-purple-600" fill={true} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="z-10 space-y-3">
+                    <h1 className="font-headline-lg-mobile text-headline-lg-mobile tracking-tight text-slate-900 font-extrabold">
+                      ThợNhanh <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-rose-600">247</span>
+                    </h1>
+                    <p className="font-title-md text-sm text-slate-600 font-medium">
+                      Kết nối việc tức thì • Chuẩn chất lượng
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-4">
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-ping"></div>
+                      <span className="font-label-xs text-purple-700 text-xs font-semibold tracking-wider">Đang khởi tạo hệ thống...</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full z-10 pb-6">
+                    <button 
+                      onClick={() => setCurrentScreen('role-select')}
+                      className="w-full py-4 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-rose-500 text-white font-headline-sm text-sm font-bold shadow-[0_15px_30px_rgba(181,0,92,0.3)] active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <span>Bắt đầu trải nghiệm</span>
+                      <Icon name="arrow_forward" className="text-base" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 2: ROLE SELECT                                         */}
+              {/* ============================================================== */}
+              {currentScreen === 'role-select' && (
+                <div className="flex-1 flex flex-col justify-between p-6 bg-[#faf8fc]">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-label-xs font-bold mb-3 border border-purple-200">
+                      <Icon name="verified" className="text-xs" />
+                      <span>BƯỚC 1: CHỌN VAI TRÒ</span>
+                    </div>
+                    <h2 className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-slate-900">
+                      Bạn muốn làm gì?
+                    </h2>
+                    <p className="font-body-md text-sm text-slate-600 mt-1">
+                      Linh hoạt chuyển đổi vai trò bất kỳ lúc nào ngay trong ứng dụng.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 my-auto py-4">
+                    {/* Role Card 1: Requester */}
+                    <div 
+                      onClick={() => {
+                        setUserRole('requester');
+                        setCurrentScreen('login');
+                      }}
+                      className="group cursor-pointer rounded-3xl p-5 bg-white border-2 border-purple-100 hover:border-purple-600 transition-all duration-300 shadow-[0_8px_24px_rgba(111,0,197,0.08)] hover:shadow-xl active:scale-95 relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-inner">
+                          <Icon name="group" className="text-2xl" />
+                        </div>
+                        <span className="font-label-xs px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-semibold">
+                          Dành cho Cá nhân & DN
+                        </span>
+                      </div>
+                      <h3 className="font-headline-sm text-lg text-slate-900 font-bold group-hover:text-purple-700 transition-colors">
+                        Tôi muốn THUÊ NGƯỜI
+                      </h3>
+                      <p className="font-body-md text-xs text-slate-600 mt-1 leading-relaxed">
+                        Đăng việc nhanh, thuê nhân sự sự kiện, bốc dỡ kho, phục vụ tiệc tức thì trong 15 phút.
+                      </p>
+                      <div className="mt-4 flex items-center text-purple-700 font-label-md text-xs font-bold">
+                        <span>Tiếp tục với vai trò Thuê</span>
+                        <Icon name="chevron_right" className="text-sm ml-1 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+
+                    {/* Role Card 2: Worker */}
+                    <div 
+                      onClick={() => {
+                        setUserRole('worker');
+                        setCurrentScreen('login');
+                      }}
+                      className="group cursor-pointer rounded-3xl p-5 bg-white border-2 border-rose-100 hover:border-rose-500 transition-all duration-300 shadow-[0_8px_24px_rgba(181,0,92,0.08)] hover:shadow-xl active:scale-95 relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
+                          <Icon name="build" className="text-2xl" />
+                        </div>
+                        <span className="font-label-xs px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
+                          Thu nhập tức thì
+                        </span>
+                      </div>
+                      <h3 className="font-headline-sm text-lg text-slate-900 font-bold group-hover:text-rose-600 transition-colors">
+                        Tôi muốn NHẬN VIỆC
+                      </h3>
+                      <p className="font-body-md text-xs text-slate-600 mt-1 leading-relaxed">
+                        Bật radar nhận việc gần bạn, linh hoạt thời gian, nhận tiền về ví ngay sau khi hoàn thành.
+                      </p>
+                      <div className="mt-4 flex items-center text-rose-600 font-label-md text-xs font-bold">
+                        <span>Tiếp tục với vai trò Thợ</span>
+                        <Icon name="chevron_right" className="text-sm ml-1 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center font-body-md text-xs text-slate-500">
+                    Bằng việc tiếp tục, bạn đồng ý với Điều khoản & Chính sách ThợNhanh 247.
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 3: LOGIN (OTP)                                         */}
+              {/* ============================================================== */}
+              {currentScreen === 'login' && (
+                <div className="flex-1 flex flex-col justify-between p-6 bg-[#faf8fc]">
+                  <div>
+                    <button 
+                      onClick={() => setCurrentScreen('role-select')} 
+                      className="p-2 -ml-2 text-slate-600 hover:text-purple-700 transition-colors flex items-center gap-1 font-label-md"
+                    >
+                      <Icon name="arrow_back" className="text-xl" />
+                      <span>Quay lại</span>
+                    </button>
+
+                    <div className="mt-4">
+                      <span className="font-label-xs text-purple-700 font-bold uppercase tracking-wider">
+                        {userRole === 'requester' ? 'Người Thuê Việc' : 'Đối Tác Thợ'}
+                      </span>
+                      <h2 className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-slate-900 mt-1">
+                        Đăng nhập nhanh
+                      </h2>
+                      <p className="font-body-md text-xs text-slate-600 mt-1">
+                        Dùng số điện thoại để tiếp tục vào ứng dụng
+                      </p>
+                    </div>
+
+                    <div className="mt-8 space-y-4">
+                      <div>
+                        <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1.5">Số điện thoại (+84)</label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-4 text-slate-600 font-semibold text-sm">🇻🇳 +84</span>
+                          <input 
+                            type="text" 
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="0912 345 678"
+                            className="w-full pl-20 pr-4 py-3.5 bg-white rounded-2xl border border-purple-200 text-slate-900 font-title-md text-sm focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none shadow-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {!otpSent ? (
+                        <button 
+                          onClick={() => {
+                            setOtpSent(true);
+                            triggerToast("Mã OTP đã được gửi về số: " + phone);
+                          }}
+                          className="w-full mt-4 py-3.5 rounded-full bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white font-headline-sm text-sm font-bold shadow-[0_12px_24px_rgba(111,0,197,0.3)] active:scale-95 transition-transform"
+                        >
+                          Gửi mã xác nhận OTP
+                        </button>
+                      ) : (
+                        <div className="pt-2 space-y-4">
+                          <label className="font-label-md text-xs text-slate-700 font-semibold block">Nhập mã xác thực 4 số:</label>
+                          <div className="flex justify-between gap-3">
+                            {otpValues.map((val, idx) => (
+                              <input 
+                                key={idx}
+                                type="text"
+                                maxLength="1"
+                                defaultValue={val}
+                                className="w-14 h-14 text-center text-xl font-bold bg-white rounded-2xl border-2 border-purple-400 text-purple-700 shadow-sm focus:ring-2 focus:ring-purple-400"
+                              />
+                            ))}
+                          </div>
+                          
+                          <div className="flex justify-between items-center text-xs text-slate-500">
+                            <span>Chưa nhận được mã?</span>
+                            <span className="text-purple-700 font-bold cursor-pointer">Gửi lại (45s)</span>
+                          </div>
+
+                          <button 
+                            onClick={() => setCurrentScreen('profile-setup')}
+                            className="w-full py-3.5 rounded-full bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white font-headline-sm text-sm font-bold shadow-[0_12px_24px_rgba(111,0,197,0.35)] active:scale-95 transition-transform"
+                          >
+                            Xác nhận OTP & Tiếp tục
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-center font-label-xs text-slate-500">
+                    Bảo mật mã hóa đa tầng AURA Sync Shield 256-bit
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 4: PROFILE SETUP                                       */}
+              {/* ============================================================== */}
+              {currentScreen === 'profile-setup' && (
+                <div className="flex-1 flex flex-col justify-between p-6 bg-[#faf8fc]">
+                  <div>
+                    <h2 className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-slate-900">
+                      Cập nhật hồ sơ
+                    </h2>
+                    <p className="font-body-md text-xs text-slate-600 mt-1">
+                      Hoàn thiện thông tin để bắt đầu trải nghiệm dịch vụ
+                    </p>
+
+                    {/* Avatar Upload */}
+                    <div className="flex flex-col items-center my-6">
+                      <div className="relative">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-rose-500 p-0.5 shadow-md">
+                          <div className="w-full h-full rounded-full bg-purple-50 flex items-center justify-center overflow-hidden">
+                            <Icon name="person" className="text-5xl text-purple-600" />
+                          </div>
+                        </div>
+                        <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-purple-700 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform">
+                          <Icon name="photo_camera" className="text-sm" />
+                        </button>
+                      </div>
+                      <span className="font-label-xs text-purple-700 font-bold mt-2">Chạm để đổi ảnh đại diện</span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Họ và tên</label>
+                        <input 
+                          type="text" 
+                          defaultValue="Nguyễn Hoàng Long"
+                          className="w-full px-4 py-3 bg-white rounded-xl border border-purple-200 text-slate-900 font-title-md text-sm focus:border-purple-600 outline-none shadow-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Vai trò hiển thị</label>
+                        <div className="px-4 py-2.5 rounded-xl bg-purple-50 text-sm font-semibold flex items-center justify-between border border-purple-200">
+                          <span className="text-slate-800">
+                            {userRole === 'requester' ? 'Người thuê việc (Khách hàng)' : 'Thợ nhận việc (Đối tác)'}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600 text-white font-semibold">Đã xác nhận</span>
+                        </div>
+                      </div>
+
+                      {userRole === 'worker' && (
+                        <div>
+                          <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Xác minh danh tính CCCD</label>
+                          <div className="p-4 rounded-2xl border-2 border-dashed border-rose-300 bg-rose-50/50 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-rose-50 transition-colors">
+                            <Icon name="badge" className="text-3xl text-rose-600 mb-1" />
+                            <span className="text-xs font-bold text-slate-900">Chụp ảnh CCCD / Giấy tờ xác minh</span>
+                            <span className="text-[10px] text-slate-600 mt-0.5">Hệ thống AI duyệt tự động trong 30 giây</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-6">
+                    <button 
+                      onClick={() => {
+                        triggerToast("Hồ sơ đã được lưu thành công!");
+                        setCurrentScreen(userRole === 'worker' ? 'work-home' : 'req-home');
+                      }}
+                      className="w-full py-4 rounded-full bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white font-headline-sm text-sm font-bold shadow-[0_15px_30px_rgba(111,0,197,0.3)] active:scale-95 transition-transform"
+                    >
+                      Hoàn tất hồ sơ & Vào việc
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 5: REQUESTER HOME                                      */}
+              {/* ============================================================== */}
+              {currentScreen === 'req-home' && (
+                <div className="flex-1 flex flex-col bg-[#faf8fc] pb-20">
+                  {/* Top Bar Header (Light Requester Style) */}
+                  <div className="bg-gradient-to-b from-purple-600 via-purple-700 to-fuchsia-700 px-5 pt-6 pb-6 rounded-b-[2rem] text-white shadow-md">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-body-md text-xs text-purple-200">Xin chào,</span>
+                        <h2 className="font-headline-sm text-lg font-bold text-white flex items-center gap-1.5">
+                          Hoàng Long 👋
+                        </h2>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-[11px] font-title-md text-white flex items-center gap-1">
+                          <Icon name="location_on" className="text-xs text-pink-300" />
+                          <span>TP. Hồ Chí Minh</span>
+                        </span>
+                        <button 
+                          onClick={() => setCurrentScreen('shared-noti')}
+                          className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95"
+                        >
+                          <Icon name="notifications" className="text-base" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Search / Filter Capsule */}
+                    <div className="mt-4 p-3 bg-white/95 rounded-2xl shadow-sm flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <Icon name="search" className="text-purple-700 text-base" />
+                        <span className="text-slate-600 font-medium">Tìm thợ sự kiện, bốc vác, dọn dẹp...</span>
+                      </div>
+                      <Icon name="tune" className="text-purple-700 text-base" />
+                    </div>
+                  </div>
+
+                  {/* Quick Category Chips */}
+                  <div className="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar">
+                    {['Tất cả', 'Sự kiện 🎪', 'Bốc xếp 📦', 'Dọn dẹp 🧹', 'Phục vụ 🍽️'].map((cat, i) => (
+                      <button 
+                        key={i} 
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-title-md whitespace-nowrap transition-all ${
+                          i === 0 
+                            ? 'bg-gradient-to-r from-purple-700 to-rose-600 text-white font-bold shadow-sm' 
+                            : 'bg-white text-slate-700 hover:text-purple-700 border border-purple-100 shadow-sm'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Active Jobs Section */}
+                  <div className="px-5 mt-2 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-headline-sm text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        Công việc đang diễn ra
+                      </h3>
+                      <span className="font-label-xs text-purple-700 font-bold">2 việc đang chạy</span>
+                    </div>
+
+                    {/* Card 1: Setup Conference */}
+                    <div 
+                      onClick={() => setCurrentScreen('req-tracking')}
+                      className="cursor-pointer p-4 rounded-3xl bg-white border border-purple-100 hover:border-purple-300 transition-all shadow-[0_4px_20px_rgba(111,0,197,0.06)] active:scale-98"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-label-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                            Đang làm việc
+                          </span>
+                          <h4 className="font-headline-sm text-sm font-bold text-slate-900 mt-1.5">Setup sự kiện hội nghị</h4>
+                          <p className="font-body-md text-xs text-slate-500 mt-0.5">Trung tâm SECC, Quận 7 • Hôm nay, 14:00</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-purple-700">450.000đ</span>
+                          <span className="block text-[10px] text-slate-500">Khoán 3 người</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-purple-50 flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                          <Icon name="check_circle" className="text-sm text-emerald-600" fill={true} />
+                          <span>3/3 người đã có mặt</span>
+                        </div>
+                        <div className="flex items-center text-purple-700 font-bold">
+                          <span>Chi tiết & Giám sát</span>
+                          <Icon name="arrow_forward" className="text-xs ml-1" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Urgent Courier */}
+                    <div 
+                      onClick={() => setCurrentScreen('req-radar')}
+                      className="cursor-pointer p-4 rounded-3xl bg-white border border-rose-100 hover:border-rose-300 transition-all shadow-[0_4px_20px_rgba(181,0,92,0.06)] active:scale-98"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-label-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                            Đang tìm thợ
+                          </span>
+                          <h4 className="font-headline-sm text-sm font-bold text-slate-900 mt-1.5">Chạy vặt giao tài liệu gấp</h4>
+                          <p className="font-body-md text-xs text-slate-500 mt-0.5">Quận 1 sang Quận 3 • Cần gấp</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-rose-600">150.000đ</span>
+                          <span className="block text-[10px] text-slate-500">1 người</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-rose-50 flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-1.5 text-amber-700 font-semibold">
+                          <Icon name="radar" className="text-sm animate-spin text-amber-600" />
+                          <span>Đang quét radar (0/1 người)</span>
+                        </div>
+                        <div className="flex items-center text-rose-600 font-bold">
+                          <span>Xem Radar</span>
+                          <Icon name="arrow_forward" className="text-xs ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Action Button (FAB) */}
+                  <div className="fixed bottom-24 right-8 z-30">
+                    <button 
+                      onClick={() => setCurrentScreen('req-create')}
+                      className="px-5 py-3.5 rounded-full bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white font-headline-sm text-xs font-bold shadow-[0_12px_24px_rgba(111,0,197,0.35)] flex items-center gap-2 active:scale-95 transition-transform"
+                    >
+                      <Icon name="add" className="text-lg font-bold" />
+                      <span>Đăng việc mới</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 6: CREATE JOB                                          */}
+              {/* ============================================================== */}
+              {currentScreen === 'req-create' && (
+                <div className="flex-1 flex flex-col justify-between bg-[#faf8fc] pb-6">
+                  {/* Top Bar */}
+                  <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-white shadow-sm">
+                    <button 
+                      onClick={() => setCurrentScreen('req-home')}
+                      className="p-1 text-slate-700 hover:text-purple-700 transition-colors flex items-center"
+                    >
+                      <Icon name="arrow_back" className="text-xl" />
+                    </button>
+                    <h3 className="font-headline-sm text-sm font-bold text-slate-900">Tạo công việc mới</h3>
+                    <span className="text-xs text-purple-700 font-bold">Bước 1/2</span>
+                  </div>
+
+                  {/* Form Container */}
+                  <div className="p-5 space-y-4 overflow-y-auto">
+                    <div>
+                      <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Tiêu đề công việc</label>
+                      <input 
+                        type="text" 
+                        defaultValue="Bốc xếp bàn ghế tiệc cưới"
+                        className="w-full px-4 py-3 bg-white rounded-2xl border border-purple-200 text-slate-900 font-title-md text-sm focus:border-purple-600 outline-none shadow-sm"
+                      />
+                    </div>
+
+                    {/* Category Selection */}
+                    <div>
+                      <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Ngành nghề</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['Sự kiện 🎉', 'Kho bãi / Bốc dỡ 📦', 'Dọn nhà 🏠', 'F&B Phục vụ 🍹'].map((cat, i) => (
+                          <div 
+                            key={i} 
+                            className={`p-2.5 rounded-xl border text-xs font-semibold cursor-pointer text-center transition-all ${
+                              i === 0 
+                                ? 'bg-purple-100 border-purple-600 text-purple-800 font-bold shadow-sm' 
+                                : 'bg-white border-purple-100 text-slate-600 shadow-sm'
+                            }`}
+                          >
+                            {cat}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Number of Workers Stepper */}
+                    <div className="flex justify-between items-center p-3.5 rounded-2xl bg-white border border-purple-100 shadow-sm">
+                      <div>
+                        <span className="font-headline-sm text-xs font-bold text-slate-900 block">Số lượng thợ cần</span>
+                        <span className="font-body-md text-[11px] text-slate-500">Cần bao nhiêu người làm?</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => setJobCount(Math.max(1, jobCount - 1))}
+                          className="w-8 h-8 rounded-full bg-purple-50 border border-purple-200 text-purple-700 font-bold flex items-center justify-center active:scale-90"
+                        >
+                          -
+                        </button>
+                        <span className="text-base font-bold text-purple-700 w-6 text-center">{jobCount}</span>
+                        <button 
+                          onClick={() => setJobCount(jobCount + 1)}
+                          className="w-8 h-8 rounded-full bg-purple-50 border border-purple-200 text-purple-700 font-bold flex items-center justify-center active:scale-90"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Wage Type Toggle */}
+                    <div>
+                      <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Hình thức thanh toán</label>
+                      <div className="grid grid-cols-2 p-1 rounded-2xl bg-white border border-purple-100 shadow-sm">
+                        <button 
+                          onClick={() => setWageType('package')}
+                          className={`py-2 rounded-xl text-xs font-bold transition-all ${wageType === 'package' ? 'bg-gradient-to-r from-purple-700 to-rose-600 text-white shadow-sm' : 'text-slate-600'}`}
+                        >
+                          Khoán trọn gói
+                        </button>
+                        <button 
+                          onClick={() => setWageType('hourly')}
+                          className={`py-2 rounded-xl text-xs font-bold transition-all ${wageType === 'hourly' ? 'bg-gradient-to-r from-purple-700 to-rose-600 text-white shadow-sm' : 'text-slate-600'}`}
+                        >
+                          Trả theo giờ
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Estimated Hours & Wage */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Thời gian làm</label>
+                        <input 
+                          type="text" 
+                          defaultValue="4 giờ (Bắt đầu 14:30)"
+                          className="w-full px-3 py-2.5 bg-white rounded-xl border border-purple-200 text-slate-800 text-xs font-title-md shadow-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Mức lương đề xuất</label>
+                        <input 
+                          type="text" 
+                          defaultValue="350.000đ / người"
+                          className="w-full px-3 py-2.5 bg-white rounded-xl border border-purple-200 text-purple-700 font-bold text-xs font-title-md shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <label className="font-label-md text-xs text-slate-700 font-semibold block mb-1">Địa điểm tập kết</label>
+                      <div className="relative flex items-center">
+                        <Icon name="location_on" className="absolute left-3 text-rose-500 text-base" />
+                        <input 
+                          type="text" 
+                          defaultValue="Sảnh Diamond, White Palace, Q.Phú Nhuận"
+                          className="w-full pl-9 pr-3 py-2.5 bg-white rounded-xl border border-purple-200 text-slate-800 text-xs font-title-md shadow-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sticky Estimate & Submit CTA */}
+                  <div className="p-5 border-t border-purple-100 bg-white/95 backdrop-blur-xl shadow-lg">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <span className="text-[11px] text-slate-500 block">Ước tính tổng chi phí ({jobCount} người)</span>
+                        <span className="text-lg font-extrabold text-slate-900">{(jobCount * 350000).toLocaleString('vi-VN')} đ</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full font-bold">
+                        Ký quỹ AURA Safe
+                      </span>
+                    </div>
+
+                    <button 
+                      onClick={() => {
+                        triggerToast("Đã đăng việc! Đang kích hoạt Radar...");
+                        setCurrentScreen('req-radar');
+                      }}
+                      className="w-full py-4 rounded-full bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white font-headline-sm text-sm font-bold shadow-[0_12px_24px_rgba(111,0,197,0.35)] active:scale-95 transition-transform flex items-center justify-center gap-2"
+                    >
+                      <Icon name="radar" className="text-base" />
+                      <span>Đăng việc & Tìm thợ ngay</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 7: REQUESTER RADAR                                     */}
+              {/* ============================================================== */}
+              {currentScreen === 'req-radar' && (
+                <div className="flex-1 flex flex-col justify-between items-center p-6 bg-[#faf8fc] text-center relative overflow-hidden">
+                  <div className="w-full flex justify-between items-center z-10">
+                    <button 
+                      onClick={() => setCurrentScreen('req-home')}
+                      className="p-1 text-slate-700 hover:text-purple-700 transition-colors flex items-center text-xs font-semibold"
+                    >
+                      <Icon name="arrow_back" className="text-base mr-1" />
+                      <span>Về Trang chủ</span>
+                    </button>
+                    <span className="font-label-xs text-rose-700 font-bold bg-rose-100 px-2.5 py-1 rounded-full border border-rose-200">
+                      RADAR LIVE
+                    </span>
+                  </div>
+
+                  {/* Concentric Animated Radar Rings */}
+                  <div className="relative w-64 h-64 my-auto flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border border-purple-200 animate-ping"></div>
+                    <div className="absolute w-52 h-52 rounded-full border border-purple-300/80 bg-purple-50/30"></div>
+                    <div className="absolute w-36 h-36 rounded-full border border-rose-300 bg-rose-50/40"></div>
+                    
+                    {/* Radar Sweep Line */}
+                    <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,rgba(181,0,92,0.15)_180deg,transparent_360deg)] animate-radar"></div>
+                    
+                    {/* Center Radar Dot */}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-700 to-rose-600 p-1 shadow-[0_0_30px_rgba(181,0,92,0.3)] flex items-center justify-center z-10">
+                      <Icon name="explore" className="text-white text-3xl" fill={true} />
+                    </div>
+
+                    {/* Detected Worker Dots Floating */}
+                    <div className="absolute top-10 right-12 w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_12px_#10b981] animate-bounce"></div>
+                    <div className="absolute bottom-12 left-10 w-3.5 h-3.5 rounded-full bg-purple-600 shadow-[0_0_10px_#6f00c5]"></div>
+                  </div>
+
+                  {/* Radar Information Box */}
+                  <div className="w-full z-10 space-y-3">
+                    <div className="p-4 rounded-3xl bg-white border border-purple-100 shadow-[0_6px_20px_rgba(111,0,197,0.08)]">
+                      <h3 className="font-headline-sm text-sm font-bold text-slate-900">
+                        Đang phát tín hiệu tìm thợ...
+                      </h3>
+                      <p className="font-body-md text-xs text-slate-600 mt-1">
+                        Quét bán kính 5km quanh Phú Nhuận • Đã gửi tới 18 thợ online
+                      </p>
+                      <div className="mt-3 flex items-center justify-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span className="font-label-md text-xs text-purple-700 font-bold">Đã nhận: 1 / 3 người</span>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => {
+                        triggerToast("Thợ Lê Chung & 2 đối tác đã nhận cuốc!");
+                        setCurrentScreen('req-tracking');
+                      }}
+                      className="w-full py-3.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-headline-sm text-xs font-bold shadow-md active:scale-95 transition-transform"
+                    >
+                      ⚡ Mô phỏng: Có thợ nhận việc ngay 🎉
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 8: REQUESTER TRACKING                                  */}
+              {/* ============================================================== */}
+              {currentScreen === 'req-tracking' && (
+                <div className="flex-1 flex flex-col justify-between bg-[#faf8fc] relative overflow-hidden">
+                  {/* Top Header */}
+                  <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-white shadow-sm z-10">
+                    <button 
+                      onClick={() => setCurrentScreen('req-home')}
+                      className="p-1 text-slate-700 hover:text-purple-700 transition-colors flex items-center"
+                    >
+                      <Icon name="arrow_back" className="text-xl" />
+                    </button>
+                    <div className="text-center">
+                      <h3 className="font-headline-sm text-sm font-bold text-slate-900">Giám sát & Quản lý việc</h3>
+                      <span className="text-[10px] text-emerald-700 font-bold">Đang diễn ra • 3 nhân sự</span>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentScreen('shared-chat')}
+                      className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center"
+                    >
+                      <Icon name="chat" className="text-sm" />
+                    </button>
+                  </div>
+
+                  {/* Simulated Map View (Light Clean) */}
+                  <div className="flex-1 relative bg-[#eef1f8] flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#8b2ce6_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    
+                    {/* Destination Marker */}
+                    <div className="absolute top-1/3 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                      <div className="p-2 rounded-2xl bg-rose-600 text-white shadow-lg animate-bounce">
+                        <Icon name="flag" className="text-xl" fill={true} />
+                      </div>
+                      <span className="px-2 py-0.5 mt-1 rounded bg-white shadow-sm text-[10px] text-slate-800 font-bold border border-rose-100">
+                        Điểm tập kết tiệc
+                      </span>
+                    </div>
+
+                    {/* Workers Moving On Map */}
+                    <div className="absolute top-1/2 left-1/4 flex flex-col items-center">
+                      <div className="w-8 h-8 rounded-full bg-purple-700 text-white border-2 border-white flex items-center justify-center text-xs font-bold shadow-md">
+                        LC
+                      </div>
+                      <span className="text-[9px] bg-white px-1.5 py-0.5 rounded text-purple-700 font-bold shadow-xs mt-0.5">500m</span>
+                    </div>
+
+                    <div className="absolute top-2/5 right-1/4 flex flex-col items-center">
+                      <div className="w-8 h-8 rounded-full bg-emerald-600 text-white border-2 border-white flex items-center justify-center text-xs font-bold shadow-md">
+                        TN
+                      </div>
+                      <span className="text-[9px] bg-white px-1.5 py-0.5 rounded text-emerald-700 font-bold shadow-xs mt-0.5">Có mặt</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Worker List Sheet */}
+                  <div className="p-4 rounded-t-3xl bg-white border-t border-purple-100 space-y-3 z-10 shadow-2xl">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-headline-sm text-xs font-bold text-slate-900">Danh sách nhân sự (3 người)</h4>
+                      <span className="text-[11px] text-purple-700 font-bold">Tổng thù lao: 1.050.000đ</span>
+                    </div>
+
+                    {/* Worker Rows */}
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {[
+                        { name: 'Lê Chung', star: '4.9', status: 'Đang di chuyển (500m)', statusColor: 'text-amber-700' },
+                        { name: 'Trần Nam', star: '5.0', status: 'Đã có mặt tại địa điểm', statusColor: 'text-emerald-700' },
+                        { name: 'Hoàng Huy', star: '4.8', status: 'Đang làm việc tại sảnh', statusColor: 'text-purple-700' },
+                      ].map((w, idx) => (
+                        <div key={idx} className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-100 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-900">{w.name}</span>
+                              <span className="text-[10px] text-amber-600 font-bold flex items-center">
+                                ★ {w.star}
+                              </span>
+                            </div>
+                            <span className={`text-[10px] font-semibold ${w.statusColor}`}>{w.status}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5">
+                            <button 
+                              onClick={() => triggerToast(`Đang gọi điện cho ${w.name}...`)}
+                              className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center active:scale-90"
+                            >
+                              <Icon name="call" className="text-xs" fill={true} />
+                            </button>
+                            <button 
+                              onClick={() => setCurrentScreen('shared-chat')}
+                              className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center active:scale-90"
+                            >
+                              <Icon name="chat" className="text-xs" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Close / Pay Action */}
+                    <button 
+                      onClick={() => {
+                        triggerToast("Đã nghiệm thu & tự động giải ngân cho 3 thợ thành công!");
+                        setCurrentScreen('req-home');
+                      }}
+                      className="w-full py-3.5 rounded-full bg-gradient-to-r from-purple-700 via-fuchsia-600 to-rose-600 text-white font-headline-sm text-xs font-bold shadow-md active:scale-95 transition-transform"
+                    >
+                      Thanh toán tất cả & Nghiệm thu việc
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 9: WORKER HOME                                         */}
+              {/* ============================================================== */}
+              {currentScreen === 'work-home' && (
+                <div className="flex-1 flex flex-col bg-[#faf8fc] pb-20">
+                  {/* Top Header Worker (Light Mode Vibrant Coral-Rose) */}
+                  <div className="bg-gradient-to-b from-rose-600 via-rose-700 to-pink-700 px-5 pt-6 pb-6 rounded-b-[2rem] text-white shadow-md">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-body-md text-xs text-rose-100">Thợ đối tác:</span>
+                        <h2 className="font-headline-sm text-lg font-bold text-white flex items-center gap-1.5">
+                          Nguyễn Long ⚡
+                        </h2>
+                      </div>
+                      
+                      {/* Online/Offline Toggle */}
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setWorkerOnline(!workerOnline)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
+                            workerOnline 
+                              ? 'bg-emerald-500 text-white shadow-md' 
+                              : 'bg-white/20 text-rose-100'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${workerOnline ? 'bg-white animate-ping' : 'bg-slate-400'}`}></span>
+                          <span>{workerOnline ? 'TRỰC TUYẾN' : 'NGHỈ NGƠI'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Today's Earnings Snapshot */}
+                    <div className="mt-4 p-4 rounded-3xl bg-white text-slate-800 shadow-md flex justify-between items-center">
+                      <div>
+                        <span className="text-[11px] text-slate-500 block">Thu nhập hôm nay</span>
+                        <span className="text-2xl font-extrabold text-slate-900">350.000đ</span>
+                        <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">3 cuốc hoàn tất • Đã giải ngân</span>
+                      </div>
+                      <button 
+                        onClick={() => setCurrentScreen('work-wallet')}
+                        className="px-3.5 py-2 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-xs"
+                      >
+                        <Icon name="account_balance_wallet" className="text-sm" />
+                        <span>Ví tiền</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Center Radar Scanner Status */}
+                  <div className="px-5 mt-4 space-y-4">
+                    <div className="p-4 rounded-3xl bg-white border border-rose-100 flex items-center gap-3 shadow-sm">
+                      <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center animate-pulse">
+                        <Icon name="radar" className="text-2xl" />
+                      </div>
+                      <div>
+                        <h4 className="font-headline-sm text-xs font-bold text-slate-900">Radar quét việc đang hoạt động</h4>
+                        <p className="font-body-md text-[11px] text-slate-500 mt-0.5">
+                          Sẵn sàng nhận cuốc trong bán kính 10km quanh khu vực bạn.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Prototype Job Alert Trigger */}
+                    <div className="p-5 rounded-3xl bg-rose-50 border-2 border-rose-200 text-center space-y-3 shadow-xs">
+                      <span className="font-label-xs text-rose-700 font-bold uppercase tracking-wider block">
+                        Kịch bản kiểm thử trải nghiệm
+                      </span>
+                      <p className="text-xs text-slate-600">
+                        Nhấn nút bên dưới để mô phỏng sự kiện có khách hàng đăng việc mới nổ chuông ngay lập tức.
+                      </p>
+                      <button 
+                        onClick={() => setCurrentScreen('work-alert')}
+                        className="w-full py-4 rounded-full bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white font-headline-sm text-xs font-bold shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
+                      >
+                        <Icon name="notifications_active" className="text-base animate-bounce" />
+                        <span>MÔ PHỎNG: CÓ VIỆC MỚI NỔ CUỐC 🔔</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 10: WORKER ALERT MODAL                                 */}
+              {/* ============================================================== */}
+              {currentScreen === 'work-alert' && (
+                <div className="flex-1 flex flex-col justify-end p-5 bg-slate-900/60 backdrop-blur-sm relative">
+                  {/* High Impact Alert Card (Light Card with Red-Purple Gradient Accent) */}
+                  <div className="p-6 rounded-[2.5rem] bg-white border-2 border-rose-500 shadow-2xl space-y-5">
+                    
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-rose-600 animate-ping"></span>
+                        <span className="font-label-xs text-rose-600 font-extrabold uppercase tracking-wider">
+                          🔥 CÓ VIỆC MỚI GẦN BẠN!
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
+                        Hết hạn trong 30s
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="font-headline-md text-xl font-extrabold text-slate-900">
+                        Setup âm thanh & sự kiện
+                      </h3>
+                      <p className="font-body-md text-xs text-rose-600 font-semibold mt-1">
+                        Cần 3 người • Cách bạn 1.8km (Phú Nhuận)
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-200 flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block">Thù lao nhận được</span>
+                        <span className="text-xl font-extrabold text-rose-600">180.000đ / người</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-500 block">Hình thức</span>
+                        <span className="text-xs font-bold text-slate-800">Khoán 3 giờ</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <button 
+                        onClick={() => {
+                          triggerToast("Bạn đã nhận việc thành công! Di chuyển tới điểm hẹn.");
+                          setCurrentScreen('work-onduty');
+                        }}
+                        className="w-full py-4 rounded-full bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white font-headline-sm text-sm font-bold shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
+                      >
+                        <Icon name="bolt" className="text-base" fill={true} />
+                        <span>CHẤP NHẬN NHẬN CUỐC NGAY</span>
+                      </button>
+
+                      <button 
+                        onClick={() => setCurrentScreen('work-home')}
+                        className="w-full py-3 text-xs text-slate-600 hover:text-slate-900 font-semibold transition-colors"
+                      >
+                        Bỏ qua cuốc này
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 11: WORKER ON-DUTY                                     */}
+              {/* ============================================================== */}
+              {currentScreen === 'work-onduty' && (
+                <div className="flex-1 flex flex-col justify-between bg-[#faf8fc] relative overflow-hidden">
+                  {/* Top Bar */}
+                  <div className="p-4 border-b border-rose-100 flex items-center justify-between bg-white shadow-sm z-10">
+                    <button 
+                      onClick={() => setCurrentScreen('work-home')}
+                      className="p-1 text-slate-700 hover:text-rose-600 transition-colors flex items-center"
+                    >
+                      <Icon name="arrow_back" className="text-xl" />
+                    </button>
+                    <div className="text-center">
+                      <h3 className="font-headline-sm text-sm font-bold text-slate-900">Đang thực hiện công việc</h3>
+                      <span className="text-[10px] text-rose-600 font-bold">Mã cuốc #TN-892</span>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentScreen('shared-chat')}
+                      className="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center"
+                    >
+                      <Icon name="chat" className="text-sm" />
+                    </button>
+                  </div>
+
+                  {/* Navigation Map Indicator */}
+                  <div className="flex-1 relative bg-[#edf0f7] flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-20 h-20 rounded-full bg-rose-100 border-2 border-rose-500 flex items-center justify-center text-rose-600 mb-3 animate-pulse shadow-md">
+                      <Icon name="navigation" className="text-3xl" />
+                    </div>
+                    <span className="font-headline-sm text-base font-bold text-slate-900">Cách điểm hẹn 1.2 km</span>
+                    <span className="font-body-md text-xs text-slate-500 mt-1">Dự kiến có mặt trong 5 phút nữa</span>
+                    
+                    <div className="mt-4 px-3.5 py-1.5 rounded-full bg-white text-xs text-emerald-700 font-bold border border-emerald-200 shadow-sm">
+                      ⚡ Đang làm nhiệm vụ cùng 2 thợ khác
+                    </div>
+                  </div>
+
+                  {/* Action Sheet */}
+                  <div className="p-5 rounded-t-3xl bg-white border-t border-rose-100 space-y-4 shadow-2xl z-10">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-headline-sm text-sm font-bold text-slate-900">Khách: Hoàng Long</h4>
+                        <p className="text-xs text-slate-500">White Palace, Hoàng Văn Thụ</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => triggerToast("Đang gọi khách hàng Hoàng Long...")}
+                          className="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1 shadow-xs"
+                        >
+                          <Icon name="call" className="text-sm" fill={true} />
+                          <span>Gọi khách</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setCurrentScreen('work-proof')}
+                      className="w-full py-4 rounded-full bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white font-headline-sm text-sm font-bold shadow-md active:scale-95 transition-transform"
+                    >
+                      Đã hoàn thành công việc • Nghiệm thu
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 12: WORKER PROOF                                       */}
+              {/* ============================================================== */}
+              {currentScreen === 'work-proof' && (
+                <div className="flex-1 flex flex-col justify-between p-6 bg-[#faf8fc]">
+                  <div>
+                    <button 
+                      onClick={() => setCurrentScreen('work-onduty')}
+                      className="p-1 -ml-2 text-slate-700 hover:text-rose-600 transition-colors flex items-center text-xs font-semibold"
+                    >
+                      <Icon name="arrow_back" className="text-base mr-1" />
+                      <span>Quay lại</span>
+                    </button>
+
+                    <div className="mt-2">
+                      <h3 className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-slate-900">
+                        Báo cáo nghiệm thu
+                      </h3>
+                      <p className="font-body-md text-xs text-slate-600 mt-1 leading-relaxed">
+                        Chụp ảnh thành quả tại hiện trường để kích hoạt giải ngân tự động về ví thợ.
+                      </p>
+                    </div>
+
+                    {/* Camera Capture Card */}
+                    <div 
+                      onClick={() => triggerToast("Đã tải ảnh chụp hiện trường hoàn tất!")}
+                      className="mt-6 p-8 rounded-3xl border-2 border-dashed border-rose-300 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:bg-rose-50/40 transition-colors shadow-sm"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-2 shadow-inner">
+                        <Icon name="add_a_photo" className="text-3xl" />
+                      </div>
+                      <span className="font-headline-sm text-xs font-bold text-slate-900">Chạm để chụp ảnh / Tải ảnh lên</span>
+                      <span className="font-body-md text-[10px] text-slate-500 mt-1">Ảnh rõ nét không gian sau khi hoàn thành</span>
+                    </div>
+
+                    {/* Verification Checkbox */}
+                    <div className="mt-5 p-3.5 rounded-2xl bg-white border border-rose-100 flex items-center gap-3 shadow-xs">
+                      <input 
+                        type="checkbox" 
+                        defaultChecked={true}
+                        id="proof-check"
+                        className="w-5 h-5 rounded-lg text-rose-600 bg-white border-slate-300 focus:ring-0"
+                      />
+                      <label htmlFor="proof-check" className="font-body-md text-xs text-slate-800">
+                        Khách hàng đã kiểm tra và đồng ý nghiệm thu tại chỗ.
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="pt-6">
+                    <button 
+                      onClick={() => {
+                        triggerToast("Báo cáo thành công! +180.000đ đã được cộng vào ví.");
+                        setCurrentScreen('work-home');
+                      }}
+                      className="w-full py-4 rounded-full bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white font-headline-sm text-sm font-bold shadow-md active:scale-95 transition-transform"
+                    >
+                      Gửi báo cáo & Nhận tiền ngay
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 13: WORKER WALLET                                      */}
+              {/* ============================================================== */}
+              {currentScreen === 'work-wallet' && (
+                <div className="flex-1 flex flex-col bg-[#faf8fc] pb-20">
+                  {/* Top Bar */}
+                  <div className="p-4 border-b border-rose-100 flex items-center justify-between bg-white shadow-sm">
+                    <button 
+                      onClick={() => setCurrentScreen('work-home')}
+                      className="p-1 text-slate-700 hover:text-rose-600 transition-colors flex items-center"
+                    >
+                      <Icon name="arrow_back" className="text-xl" />
+                    </button>
+                    <h3 className="font-headline-sm text-sm font-bold text-slate-900">Ví thu nhập Thợ</h3>
+                    <Icon name="help" className="text-base text-slate-400" />
+                  </div>
+
+                  {/* Balance Card */}
+                  <div className="p-5">
+                    <div className="p-6 rounded-[2rem] bg-gradient-to-br from-rose-600 via-pink-600 to-purple-700 text-white shadow-lg space-y-4">
+                      <div>
+                        <span className="text-xs text-pink-100">Số dư khả dụng rút về</span>
+                        <div className="text-3xl font-extrabold text-white mt-1">1.250.000 đ</div>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button 
+                          onClick={() => triggerToast("Yêu cầu rút tiền về ngân hàng đã được duyệt!")}
+                          className="flex-1 py-2.5 rounded-full bg-white text-rose-700 font-headline-sm text-xs font-bold shadow-md active:scale-95"
+                        >
+                          Rút tiền về NH
+                        </button>
+                        <button 
+                          onClick={() => triggerToast("Chức năng nạp điểm ký quỹ đang mở...")}
+                          className="flex-1 py-2.5 rounded-full bg-white/20 text-white border border-white/40 font-headline-sm text-xs font-bold active:scale-95 backdrop-blur-md"
+                        >
+                          Nạp điểm ký quỹ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transaction History */}
+                  <div className="px-5 space-y-3">
+                    <h4 className="font-headline-sm text-xs font-bold text-slate-900">Lịch sử giao dịch gần đây</h4>
+                    <div className="space-y-2">
+                      {[
+                        { title: 'Setup âm thanh & sự kiện', time: 'Hôm nay, 16:30', amount: '+180.000 đ', isPlus: true },
+                        { title: 'Bốc dỡ kho hàng SECC', time: 'Hôm qua, 11:15', amount: '+250.000 đ', isPlus: true },
+                        { title: 'Rút tiền về Vietcombank', time: '2 ngày trước', amount: '-300.000 đ', isPlus: false },
+                      ].map((item, idx) => (
+                        <div key={idx} className="p-3.5 rounded-2xl bg-white border border-purple-50 flex items-center justify-between shadow-xs">
+                          <div>
+                            <span className="text-xs font-bold text-slate-900 block">{item.title}</span>
+                            <span className="text-[10px] text-slate-500">{item.time}</span>
+                          </div>
+                          <span className={`text-xs font-extrabold ${item.isPlus ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {item.amount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 14: SHARED CHAT                                        */}
+              {/* ============================================================== */}
+              {currentScreen === 'shared-chat' && (
+                <div className="flex-1 flex flex-col justify-between bg-[#faf8fc]">
+                  {/* Top Bar */}
+                  <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-white shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setCurrentScreen(userRole === 'worker' ? 'work-onduty' : 'req-tracking')}
+                        className="p-1 text-slate-700 hover:text-purple-700 transition-colors flex items-center"
+                      >
+                        <Icon name="arrow_back" className="text-xl" />
+                      </button>
+                      <div className="w-8 h-8 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        LC
+                      </div>
+                      <div>
+                        <h4 className="font-headline-sm text-xs font-bold text-slate-900">Lê Chung</h4>
+                        <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Đang trực tuyến
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => triggerToast("Đang kết nối cuộc gọi thoại...")}
+                      className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-xs"
+                    >
+                      <Icon name="call" className="text-base" fill={true} />
+                    </button>
+                  </div>
+
+                  {/* Messages Stream */}
+                  <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+                    {chatMessages.map((msg) => {
+                      const isMe = (userRole === 'worker' && msg.sender === 'worker') || 
+                                   (userRole === 'requester' && msg.sender === 'requester');
+                      return (
+                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          <div 
+                            className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-xs font-body-md leading-relaxed ${
+                              isMe 
+                                ? 'bg-gradient-to-r from-purple-700 to-rose-600 text-white rounded-br-sm shadow-sm' 
+                                : 'bg-white text-slate-800 rounded-bl-sm border border-purple-100 shadow-xs'
+                            }`}
+                          >
+                            {msg.text}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Input Box */}
+                  <form onSubmit={handleSendChat} className="p-3 border-t border-purple-100 bg-white flex items-center gap-2 shadow-sm">
+                    <button type="button" className="p-2 text-slate-500 hover:text-purple-700">
+                      <Icon name="attach_file" className="text-lg" />
+                    </button>
+                    <input 
+                      type="text" 
+                      value={newMsg}
+                      onChange={(e) => setNewMsg(e.target.value)}
+                      placeholder="Nhắn tin cho đối tác..."
+                      className="flex-1 px-4 py-2.5 bg-purple-50/50 rounded-full border border-purple-200 text-xs text-slate-800 focus:outline-none focus:border-purple-600 focus:bg-white"
+                    />
+                    <button 
+                      type="submit"
+                      className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-700 to-rose-600 text-white flex items-center justify-center active:scale-90 shadow-sm"
+                    >
+                      <Icon name="send" className="text-sm" />
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 15: SHARED NOTIFICATIONS                               */}
+              {/* ============================================================== */}
+              {currentScreen === 'shared-noti' && (
+                <div className="flex-1 flex flex-col bg-[#faf8fc] pb-20">
+                  {/* Top Bar */}
+                  <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-white shadow-sm">
+                    <button 
+                      onClick={() => setCurrentScreen(userRole === 'worker' ? 'work-home' : 'req-home')}
+                      className="p-1 text-slate-700 hover:text-purple-700 transition-colors flex items-center"
+                    >
+                      <Icon name="arrow_back" className="text-xl" />
+                    </button>
+                    <h3 className="font-headline-sm text-sm font-bold text-slate-900">Thông báo hệ thống</h3>
+                    <span className="text-xs text-purple-700 font-bold">Đã đọc hết</span>
+                  </div>
+
+                  {/* Notification List */}
+                  <div className="p-4 space-y-2.5">
+                    {[
+                      { icon: 'verified', color: 'text-emerald-600 bg-emerald-100', title: 'Nghiệm thu thành công', desc: 'Cuốc việc #892 đã được nghiệm thu và giải ngân hoàn tất!', time: '10 phút trước' },
+                      { icon: 'local_offer', color: 'text-purple-700 bg-purple-100', title: 'Khuyến mãi cuối tuần', desc: 'Tặng 20% phí sàn dịch vụ cho người thuê trong tuần này.', time: '2 giờ trước' },
+                      { icon: 'badge', color: 'text-amber-700 bg-amber-100', title: 'Xác minh hồ sơ hoàn tất', desc: 'CCCD của bạn đã được kiểm duyệt hợp lệ trên ThợNhanh 247.', time: '1 ngày trước' },
+                    ].map((n, idx) => (
+                      <div key={idx} className="p-3.5 rounded-2xl bg-white border border-purple-100 flex gap-3 items-start shadow-xs">
+                        <div className={`mt-0.5 p-2 rounded-xl ${n.color}`}>
+                          <Icon name={n.icon} className="text-lg" fill={true} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-xs font-bold text-slate-900">{n.title}</h4>
+                          <p className="text-[11px] text-slate-600 mt-0.5">{n.desc}</p>
+                          <span className="text-[9px] text-slate-400 block mt-1">{n.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* SCREEN 16: SHARED PROFILE                                     */}
+              {/* ============================================================== */}
+              {currentScreen === 'shared-profile' && (
+                <div className="flex-1 flex flex-col bg-[#faf8fc] pb-20">
+                  {/* Top Bar */}
+                  <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-white shadow-sm">
+                    <h3 className="font-headline-sm text-sm font-bold text-slate-900">Tài khoản của tôi</h3>
+                    <button 
+                      onClick={() => {
+                        const newR = userRole === 'worker' ? 'requester' : 'worker';
+                        setUserRole(newR);
+                        triggerToast(`Đã chuyển sang vai trò: ${newR === 'worker' ? 'Thợ' : 'Người Thuê'}`);
+                        setCurrentScreen(newR === 'worker' ? 'work-home' : 'req-home');
+                      }}
+                      className="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200 shadow-xs"
+                    >
+                      Đổi sang {userRole === 'worker' ? 'Thuê việc' : 'Làm thợ'} 🔄
+                    </button>
+                  </div>
+
+                  {/* Profile Summary Card */}
+                  <div className="p-5">
+                    <div className="p-5 rounded-3xl bg-white border border-purple-100 flex items-center gap-4 shadow-sm">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 to-rose-500 p-0.5 shadow-sm">
+                        <div className="w-full h-full rounded-full bg-purple-50 flex items-center justify-center">
+                          <Icon name="person" className="text-3xl text-purple-700" />
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-headline-sm text-sm font-bold text-slate-900">Nguyễn Hoàng Long</h4>
+                        <span className="text-xs text-slate-500 block mt-0.5">0912 345 678</span>
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px] text-amber-600 font-bold">
+                          <span>★ 4.9</span>
+                          <span className="text-slate-500 font-normal">• Thành viên VIP</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Settings Menu Options */}
+                  <div className="px-5 space-y-2">
+                    {[
+                      { icon: 'history', label: 'Lịch sử công việc' },
+                      { icon: 'credit_card', label: 'Phương thức thanh toán & Ví' },
+                      { icon: 'notifications', label: 'Cài đặt thông báo' },
+                      { icon: 'support_agent', label: 'Trung tâm trợ giúp 24/7' },
+                      { icon: 'policy', label: 'Điều khoản & Chính sách' },
+                    ].map((item, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => triggerToast(`Mở mục: ${item.label}`)}
+                        className="p-3.5 rounded-2xl bg-white hover:bg-purple-50/50 border border-purple-50 cursor-pointer flex items-center justify-between text-xs text-slate-800 shadow-xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon name={item.icon} className="text-purple-700 text-base" />
+                          <span className="font-semibold">{item.label}</span>
+                        </div>
+                        <Icon name="chevron_right" className="text-slate-400 text-base" />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Sign Out Button */}
+                  <div className="p-5 mt-auto">
+                    <button 
+                      onClick={() => {
+                        setUserRole(null);
+                        setCurrentScreen('role-select');
+                        triggerToast("Đã đăng xuất tài khoản an toàn.");
+                      }}
+                      className="w-full py-3.5 rounded-full border border-rose-300 text-rose-700 font-headline-sm text-xs font-bold hover:bg-rose-50 active:scale-95 transition-all shadow-xs"
+                    >
+                      ĐĂNG XUẤT TÀI KHOẢN
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* ============================================================== */}
+            {/* SHARED COMPONENT: BOTTOM NAVBAR (LIGHT GLASSMORPHISM)         */}
+            {/* ============================================================== */}
+            {showBottomBar && (
+              <div className="fixed bottom-0 left-0 right-0 max-w-[368px] mx-auto mb-6 z-50 flex justify-around items-center px-space-xs py-space-2xs bg-white/90 backdrop-blur-2xl rounded-full border border-purple-100 shadow-[0_12px_35px_rgba(111,0,197,0.15)]">
+                
+                {/* Tab 1: Explore / Home */}
+                <button 
+                  onClick={() => setCurrentScreen(userRole === 'worker' ? 'work-home' : 'req-home')}
+                  className={`transition-all duration-200 ${
+                    ['req-home', 'work-home'].includes(currentScreen)
+                      ? "flex flex-col items-center justify-center bg-purple-100 text-purple-800 rounded-full px-3 py-1.5 shadow-xs font-bold"
+                      : "flex flex-col items-center justify-center text-slate-500 px-3 py-1.5 hover:text-purple-700"
+                  }`}
+                >
+                  <Icon name="explore" className="text-lg" />
+                  <span className="text-[10px] font-bold mt-0.5">Explore</span>
+                </button>
+
+                {/* Tab 2: Requests / Wallet */}
+                <button 
+                  onClick={() => setCurrentScreen(userRole === 'worker' ? 'work-wallet' : 'req-tracking')}
+                  className={`transition-all duration-200 ${
+                    ['work-wallet', 'req-tracking'].includes(currentScreen)
+                      ? "flex flex-col items-center justify-center bg-purple-100 text-purple-800 rounded-full px-3 py-1.5 shadow-xs font-bold"
+                      : "flex flex-col items-center justify-center text-slate-500 px-3 py-1.5 hover:text-purple-700"
+                  }`}
+                >
+                  <Icon name="token" className="text-lg" />
+                  <span className="text-[10px] font-bold mt-0.5">Requests</span>
+                </button>
+
+                {/* Tab 3: Pulse / Radar */}
+                <button 
+                  onClick={() => setCurrentScreen(userRole === 'worker' ? 'work-alert' : 'req-radar')}
+                  className={`transition-all duration-200 ${
+                    ['req-radar', 'work-alert'].includes(currentScreen)
+                      ? "flex flex-col items-center justify-center bg-purple-100 text-purple-800 rounded-full px-3 py-1.5 shadow-xs font-bold"
+                      : "flex flex-col items-center justify-center text-slate-500 px-3 py-1.5 hover:text-purple-700"
+                  }`}
+                >
+                  <Icon name="radar" className="text-lg" />
+                  <span className="text-[10px] font-bold mt-0.5">Pulse</span>
+                </button>
+
+                {/* Tab 4: Profile */}
+                <button 
+                  onClick={() => setCurrentScreen('shared-profile')}
+                  className={`transition-all duration-200 ${
+                    currentScreen === 'shared-profile'
+                      ? "flex flex-col items-center justify-center bg-purple-100 text-purple-800 rounded-full px-3 py-1.5 shadow-xs font-bold"
+                      : "flex flex-col items-center justify-center text-slate-500 px-3 py-1.5 hover:text-purple-700"
+                  }`}
+                >
+                  <Icon name="account_circle" className="text-lg" />
+                  <span className="text-[10px] font-bold mt-0.5">Profile</span>
+                </button>
+
+              </div>
+            )}
+
+            {/* iOS Bottom Home Indicator Bar (Light Mode) */}
+            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-400/50 rounded-full z-40 pointer-events-none"></div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // Render React App into Root
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body></html>

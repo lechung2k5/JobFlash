@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # 1. Cơ sở dữ liệu PostGIS (Spatial Database cho quét định vị & tọa độ)
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: jobflash-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: gigapp_db
+    ports:
+      - "5499:5432"
+    volumes:
+      - jobflash-pgdata:/var/lib/postgresql/data
+
+  # 2. Redis 7 (In-Memory Geohash, Pub/Sub & Fast Cache)
+  redis:
+    image: redis:7-alpine
+    container_name: jobflash-redis
+    restart: always
+    ports:
+      - "6389:6379"
+    volumes:
+      - jobflash-redisdata:/data
+
+volumes:
+  jobflash-pgdata:
+  jobflash-redisdata:
