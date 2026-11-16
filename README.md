@@ -145,7 +145,7 @@ Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đ
 
 1. Clone source code về máy:
    ```bash
-   git clone <URL_REPOSITORY_CUA_BAN>
+   git clone https://github.com/lechung2k5/JobFlash.git
    cd JobFlash
    ```
 
