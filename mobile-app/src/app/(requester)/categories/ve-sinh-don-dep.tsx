@@ -223,13 +223,8 @@ export default function VeSinhDonDepJobScreen() {
     const [selectedArea, setSelectedArea] = useState('40_70');
     const [spaceCondition, setSpaceCondition] = useState<SpaceConditionType>('standard');
 
-    // 3. Danh mục đầu việc (Mặc định chọn 4 việc phổ biến)
-    const [selectedTasks, setSelectedTasks] = useState<string[]>([
-        'sweep_mop',
-        'dust_furniture',
-        'wash_dishes',
-        'scrub_toilet',
-    ]);
+    // 3. Danh mục đầu việc (Mặc định không chọn trước)
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
     const [customTaskNote, setCustomTaskNote] = useState('');
 
     const toggleTask = (taskId: string) => {
@@ -609,6 +604,15 @@ export default function VeSinhDonDepJobScreen() {
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
+    // Kiểm tra xem đã điền đầy đủ các mục cần nhập và chọn hay chưa
+    const isFormComplete = useMemo(() => {
+        if (!address.trim()) return false;
+        if (selectedTasks.length === 0 && !customTaskNote.trim() && !specialNotes.trim()) return false;
+        if (pricingMode === 'hourly' && parsedHourlyWage <= 0) return false;
+        if (pricingMode === 'fixed' && parsedFixedPrice <= 0) return false;
+        return true;
+    }, [address, selectedTasks, customTaskNote, specialNotes, pricingMode, parsedHourlyWage, parsedFixedPrice]);
+
     // Áp dụng voucher
     const handleApplyVoucherCode = () => {
         const code = voucherInputCode.trim().toUpperCase();
@@ -656,8 +660,8 @@ export default function VeSinhDonDepJobScreen() {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ cần dọn dẹp.');
             return;
         }
-        if (selectedTasks.length === 0 && !customTaskNote.trim()) {
-            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc cần thợ làm.');
+        if (selectedTasks.length === 0 && !customTaskNote.trim() && !specialNotes.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc hoặc viết ghi chú mô tả công việc.');
             return;
         }
         if (pricingMode === 'hourly' && parsedHourlyWage <= 0) {
@@ -1933,15 +1937,15 @@ export default function VeSinhDonDepJobScreen() {
                         ]}
                     >
                         {/* Tiêu đề & Tổng tiền nổi bật */}
-                        <View style={{ marginBottom: 10 }}>
+                        <View style={{ marginBottom: isFormComplete ? 10 : 0 }}>
                             <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
-                                Tổng tiền công dự kiến
+                                {isFormComplete ? 'Tổng tiền công dự kiến' : 'Vui lòng hoàn tất thông tin'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 3 }}>
-                                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>
-                                    {grandTotal.toLocaleString('vi-VN')} đ
+                                <Text style={{ fontSize: isFormComplete ? 24 : 18, fontWeight: '900', color: isFormComplete ? colors.primary : colors.textSecondary }}>
+                                    {isFormComplete ? `${grandTotal.toLocaleString('vi-VN')} đ` : 'Chờ điền đủ thông tin'}
                                 </Text>
-                                {selectedVoucher && voucherDiscount > 0 && (
+                                {isFormComplete && selectedVoucher && voucherDiscount > 0 && (
                                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, textDecorationLine: 'line-through' }}>
                                         {subtotal.toLocaleString('vi-VN')} đ
                                     </Text>
@@ -1950,38 +1954,17 @@ export default function VeSinhDonDepJobScreen() {
                         </View>
 
                         {/* Phân bổ chi tiết (Không bị tràn màn hình) */}
-                        <View
-                            style={{
-                                flexDirection: 'row',
-                                flexWrap: 'wrap',
-                                gap: 8,
-                                paddingTop: 10,
-                                borderTopWidth: 1,
-                                borderColor: isDark ? colors.border : '#e9d5ff',
-                            }}
-                        >
+                        {isFormComplete ? (
                             <View
                                 style={{
                                     flexDirection: 'row',
-                                    alignItems: 'center',
-                                    backgroundColor: colors.surface,
-                                    paddingHorizontal: 10,
-                                    paddingVertical: 5,
-                                    borderRadius: 8,
-                                    borderWidth: 1,
-                                    borderColor: colors.border,
-                                    gap: 6,
+                                    flexWrap: 'wrap',
+                                    gap: 8,
+                                    paddingTop: 10,
+                                    borderTopWidth: 1,
+                                    borderColor: isDark ? colors.border : '#e9d5ff',
                                 }}
                             >
-                                <Clock size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    {pricingMode === 'hourly'
-                                        ? `Công thợ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h)`
-                                        : `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`}
-                                </Text>
-                            </View>
-
-                            {needTools && (
                                 <View
                                     style={{
                                         flexDirection: 'row',
@@ -1995,34 +1978,64 @@ export default function VeSinhDonDepJobScreen() {
                                         gap: 6,
                                     }}
                                 >
-                                    <Brush size={13} color={colors.secondary} />
+                                    <Clock size={13} color={colors.primary} />
                                     <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                        Dụng cụ: 30.000 đ
+                                        {pricingMode === 'hourly'
+                                            ? `Công thợ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h)`
+                                            : `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`}
                                     </Text>
                                 </View>
-                            )}
 
-                            {selectedVoucher && voucherDiscount > 0 && (
-                                <View
-                                    style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        backgroundColor: isDark ? '#064e3b30' : '#dcfce7',
-                                        paddingHorizontal: 10,
-                                        paddingVertical: 5,
-                                        borderRadius: 8,
-                                        borderWidth: 1,
-                                        borderColor: '#10b981',
-                                        gap: 6,
-                                    }}
-                                >
-                                    <Tag size={13} color="#10b981" />
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
-                                        Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
+                                {needTools && (
+                                    <View
+                                        style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            backgroundColor: colors.surface,
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 5,
+                                            borderRadius: 8,
+                                            borderWidth: 1,
+                                            borderColor: colors.border,
+                                            gap: 6,
+                                        }}
+                                    >
+                                        <Brush size={13} color={colors.secondary} />
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                            Dụng cụ: 30.000 đ
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {selectedVoucher && voucherDiscount > 0 && (
+                                    <View
+                                        style={{
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            backgroundColor: isDark ? '#064e3b30' : '#dcfce7',
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 5,
+                                            borderRadius: 8,
+                                            borderWidth: 1,
+                                            borderColor: '#10b981',
+                                            gap: 6,
+                                        }}
+                                    >
+                                        <Tag size={13} color="#10b981" />
+                                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                                            Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <AlertCircle size={14} color={colors.textSecondary} />
+                                <Text style={{ fontSize: 12, color: colors.textSecondary, flex: 1 }}>
+                                    Vui lòng nhập địa chỉ và chọn đầu việc để tính giá
+                                </Text>
+                            </View>
+                        )}
 
                         <TouchableOpacity
                             activeOpacity={0.88}

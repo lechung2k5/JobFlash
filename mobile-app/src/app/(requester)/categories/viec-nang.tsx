@@ -121,11 +121,21 @@ export const CARGO_TYPES = [
 ];
 
 // Khối lượng ước tính
-export const WEIGHT_TIERS = [
-    { id: 'under_500', label: '< 500kg', baseHours: 1 },
-    { id: '500_1000', label: '500kg - 1T', baseHours: 2 },
-    { id: '1000_3000', label: '1 - 3 Tấn', baseHours: 3 },
-    { id: 'over_3000', label: '> 3 Tấn', baseHours: 5 },
+export interface WeightTier {
+    id: string;
+    label: string;
+    baseHours: number;
+    minKg: number;
+    maxKg: number;
+    defaultKg: number;
+    rangeText: string;
+}
+
+export const WEIGHT_TIERS: WeightTier[] = [
+    { id: 'under_500', label: '100-500kg', baseHours: 1, minKg: 100, maxKg: 500, defaultKg: 300, rangeText: 'từ 100 kg đến 500 kg' },
+    { id: '500_1000', label: '501kg - 1T', baseHours: 2, minKg: 501, maxKg: 1000, defaultKg: 750, rangeText: 'từ 501 kg đến 1.000 kg' },
+    { id: '1000_3000', label: '1.01 - 3 Tấn', baseHours: 3, minKg: 1010, maxKg: 3000, defaultKg: 2000, rangeText: 'từ 1.010 kg đến 3.000 kg' },
+    { id: 'over_3000', label: '3.01 - 20 Tấn', baseHours: 5, minKg: 3010, maxKg: 20000, defaultKg: 3500, rangeText: 'từ 3.010 kg đến 20.000 kg' },
 ];
 
 // Địa hình khuân vác
@@ -178,14 +188,48 @@ export default function ViecNangJobScreen() {
     // 2. Loại hàng & Khối lượng & Địa hình
     const [selectedCargo, setSelectedCargo] = useState('box');
     const [selectedWeight, setSelectedWeight] = useState('500_1000');
+    const [exactWeight, setExactWeight] = useState('750');
     const [selectedTerrain, setSelectedTerrain] = useState('flat');
     const [stairsFloors, setStairsFloors] = useState(1); // Số tầng lầu khi chọn "Lên lầu bộ"
 
-    // 3. Danh mục đầu việc (Mặc định chọn 2 việc cơ bản)
-    const [selectedTasks, setSelectedTasks] = useState<string[]>([
-        'unloading_boxes',
-        'warehouse_sorting',
-    ]);
+    const currentWeightTier = useMemo(() => {
+        return WEIGHT_TIERS.find((w) => w.id === selectedWeight) || WEIGHT_TIERS[1];
+    }, [selectedWeight]);
+
+    const parsedExactWeight = useMemo(() => {
+        return parseInt(exactWeight.replace(/\D/g, ''), 10) || 0;
+    }, [exactWeight]);
+
+    const exactWeightFormatted = useMemo(() => {
+        if (!exactWeight) return '';
+        const num = parseInt(exactWeight.replace(/\D/g, ''), 10) || 0;
+        return num > 0 ? num.toLocaleString('vi-VN') : '';
+    }, [exactWeight]);
+
+    const isExactWeightValid = useMemo(() => {
+        if (!exactWeight.trim()) return false;
+        const num = parseInt(exactWeight.replace(/\D/g, ''), 10) || 0;
+        return num >= currentWeightTier.minKg && num <= currentWeightTier.maxKg;
+    }, [exactWeight, currentWeightTier]);
+
+    const handleSelectWeightTier = (tierId: string) => {
+        setSelectedWeight(tierId);
+        const tier = WEIGHT_TIERS.find((w) => w.id === tierId);
+        if (tier) {
+            const num = parseInt(exactWeight.replace(/\D/g, ''), 10) || 0;
+            if (num < tier.minKg || num > tier.maxKg) {
+                setExactWeight(tier.defaultKg.toString());
+            }
+        }
+    };
+
+    const handleExactWeightChange = (text: string) => {
+        const raw = text.replace(/\D/g, '');
+        setExactWeight(raw);
+    };
+
+    // 3. Danh mục đầu việc (Mặc định không chọn trước)
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
     const [customTaskNote, setCustomTaskNote] = useState('');
 
     const toggleTask = (taskId: string) => {
@@ -203,7 +247,7 @@ export default function ViecNangJobScreen() {
             minW = Math.max(minW, 2);
         }
 
-        // 2. Dựa theo Khối lượng ước tính: 1-3 Tấn -> 2 thợ, > 3 Tấn -> 4 thợ
+        // 2. Dựa theo Khối lượng ước tính: 1.01 - 3 Tấn -> 2 thợ, 3.01 - 20 Tấn -> 4 thợ
         if (selectedWeight === '1000_3000') {
             minW = Math.max(minW, 2);
         } else if (selectedWeight === 'over_3000') {
@@ -222,20 +266,20 @@ export default function ViecNangJobScreen() {
     // Diễn giải lý do cảnh báo an toàn lao động
     const safetyWarningReason = useMemo(() => {
         if (selectedWeight === 'over_3000') {
-            return 'Khối lượng > 3 Tấn bắt buộc tối thiểu 4 thợ để đảm bảo tiến độ và an toàn lao động.';
+            return 'Khối lượng 3.01 - 20 Tấn bắt buộc tối thiểu 4 thợ để đảm bảo tiến độ và an toàn lao động.';
         }
         const isOver500kg = selectedWeight !== 'under_500';
         if (selectedTerrain === 'stairs' && stairsFloors >= 3 && isOver500kg) {
             return 'Khuân vác nặng lên từ lầu 3 trở lên cần tối thiểu 2 thợ để hỗ trợ đổi tay và đảm bảo an toàn.';
         }
         if (selectedCargo === 'furniture' && selectedWeight === '1000_3000') {
-            return 'Nội thất nặng và khối lượng 1 - 3 Tấn cần tối thiểu 2 thợ để khiêng vác an toàn.';
+            return 'Nội thất nặng và khối lượng 1.01 - 3 Tấn cần tối thiểu 2 thợ để khiêng vác an toàn.';
         }
         if (selectedCargo === 'furniture') {
             return 'Nội thất nặng (tủ lạnh, giường tủ, két sắt...) cần tối thiểu 2 thợ để khiêng đỡ an toàn.';
         }
         if (selectedWeight === '1000_3000') {
-            return 'Khối lượng 1 - 3 Tấn cần tối thiểu 2 thợ để đảm bảo an toàn lao động.';
+            return 'Khối lượng 1.01 - 3 Tấn cần tối thiểu 2 thợ để đảm bảo an toàn lao động.';
         }
         return '';
     }, [selectedCargo, selectedWeight, selectedTerrain, stairsFloors]);
@@ -540,6 +584,17 @@ export default function ViecNangJobScreen() {
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
+    // Kiểm tra xem đã điền đầy đủ các mục cần nhập và chọn hay chưa
+    const isFormComplete = useMemo(() => {
+        if (!address.trim()) return false;
+        if (selectedTasks.length === 0 && !customTaskNote.trim() && !specialNotes.trim()) return false;
+        if (!exactWeight.trim() || !isExactWeightValid) return false;
+        if (workersCount < minWorkersRequired) return false;
+        if (pricingMode === 'hourly' && parsedHourlyWage <= 0) return false;
+        if (pricingMode === 'fixed' && parsedFixedPrice <= 0) return false;
+        return true;
+    }, [address, selectedTasks, customTaskNote, specialNotes, exactWeight, isExactWeightValid, workersCount, minWorkersRequired, pricingMode, parsedHourlyWage, parsedFixedPrice]);
+
     // Xử lý Voucher
     const handleApplyVoucherCode = () => {
         const code = voucherInputCode.trim().toUpperCase();
@@ -584,8 +639,15 @@ export default function ViecNangJobScreen() {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ kho bãi/công trình.');
             return;
         }
-        if (selectedTasks.length === 0 && !customTaskNote.trim()) {
-            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc bốc vác.');
+        if (selectedTasks.length === 0 && !customTaskNote.trim() && !specialNotes.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc hoặc viết ghi chú mô tả công việc.');
+            return;
+        }
+        if (!exactWeight.trim() || !isExactWeightValid) {
+            Alert.alert(
+                t('common.error'),
+                `Vui lòng nhập khối lượng cụ thể hợp lệ (${currentWeightTier.rangeText}).`
+            );
             return;
         }
         if (pricingMode === 'hourly' && parsedHourlyWage <= 0) {
@@ -621,6 +683,7 @@ export default function ViecNangJobScreen() {
             cargoLabel: cargoObj?.label,
             weightTier: selectedWeight,
             weightLabel: weightObj?.label,
+            exactWeightKg: parsedExactWeight,
             terrainType: selectedTerrain,
             terrainLabel: terrainObj?.label,
             stairsFloors: selectedTerrain === 'stairs' ? stairsFloors : undefined,
@@ -973,7 +1036,7 @@ export default function ViecNangJobScreen() {
                                 return (
                                     <TouchableOpacity
                                         key={w.id}
-                                        onPress={() => setSelectedWeight(w.id)}
+                                        onPress={() => handleSelectWeightTier(w.id)}
                                         style={{
                                             flex: 1,
                                             paddingVertical: 9,
@@ -986,12 +1049,78 @@ export default function ViecNangJobScreen() {
                                             backgroundColor: isSelected ? colors.primary + '15' : colors.surfaceContainerLow,
                                         }}
                                     >
-                                        <Text style={{ fontSize: 11.5, fontWeight: '800', color: isSelected ? colors.primary : colors.text }}>
+                                        <Text
+                                            style={{ fontSize: 11, fontWeight: '800', color: isSelected ? colors.primary : colors.text }}
+                                            numberOfLines={1}
+                                            adjustsFontSizeToFit
+                                        >
                                             {w.label}
                                         </Text>
                                     </TouchableOpacity>
                                 );
                             })}
+                        </View>
+
+                        {/* Input cụ thể khối lượng */}
+                        <View style={{ marginBottom: 14 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                    Khối lượng cụ thể ({currentWeightTier.rangeText})
+                                </Text>
+                                {isExactWeightValid && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                                        <Check size={12} color="#10b981" strokeWidth={3} />
+                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Hợp lệ</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    borderWidth: 1.5,
+                                    borderColor: !isExactWeightValid && exactWeight.length > 0
+                                        ? '#ef4444'
+                                        : isExactWeightValid
+                                            ? '#10b981'
+                                            : colors.border,
+                                    borderRadius: 12,
+                                    backgroundColor: colors.surfaceContainerLow,
+                                    paddingHorizontal: 12,
+                                    height: 48,
+                                }}
+                            >
+                                <Weight size={18} color={isExactWeightValid ? '#10b981' : colors.textSecondary} style={{ marginRight: 8 }} />
+                                <TextInput
+                                    style={{
+                                        flex: 1,
+                                        fontSize: 15,
+                                        fontWeight: '700',
+                                        color: colors.text,
+                                        paddingVertical: 0,
+                                    }}
+                                    keyboardType="numeric"
+                                    value={exactWeightFormatted}
+                                    onChangeText={handleExactWeightChange}
+                                    placeholder={`Ví dụ: ${currentWeightTier.defaultKg.toLocaleString('vi-VN')}`}
+                                    placeholderTextColor={colors.textSecondary}
+                                />
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginLeft: 8 }}>
+                                    kg
+                                </Text>
+                            </View>
+
+                            {!isExactWeightValid && exactWeight.length > 0 && (
+                                <Text style={{ fontSize: 11.5, color: '#ef4444', fontWeight: '600', marginTop: 4 }}>
+                                    ⚠️ Khối lượng phải nằm trong khoảng {currentWeightTier.rangeText}.
+                                </Text>
+                            )}
+                            {exactWeight.length === 0 && (
+                                <Text style={{ fontSize: 11.5, color: '#ef4444', fontWeight: '600', marginTop: 4 }}>
+                                    ⚠️ Vui lòng nhập khối lượng cụ thể ({currentWeightTier.rangeText}).
+                                </Text>
+                            )}
                         </View>
 
                         {/* Địa hình khuân vác */}
@@ -1856,15 +1985,15 @@ export default function ViecNangJobScreen() {
                             shadows.card,
                         ]}
                     >
-                        <View style={{ marginBottom: 10 }}>
+                        <View style={{ marginBottom: isFormComplete ? 10 : 0 }}>
                             <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
-                                Tổng tiền công ước tính
+                                {isFormComplete ? 'Tổng tiền công ước tính' : 'Vui lòng hoàn tất thông tin'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 3 }}>
-                                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>
-                                    {grandTotal.toLocaleString('vi-VN')} đ
+                                <Text style={{ fontSize: isFormComplete ? 24 : 18, fontWeight: '900', color: isFormComplete ? colors.primary : colors.textSecondary }}>
+                                    {isFormComplete ? `${grandTotal.toLocaleString('vi-VN')} đ` : 'Chờ điền đủ thông tin'}
                                 </Text>
-                                {selectedVoucher && voucherDiscount > 0 && (
+                                {isFormComplete && selectedVoucher && voucherDiscount > 0 && (
                                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, textDecorationLine: 'line-through' }}>
                                         {subtotal.toLocaleString('vi-VN')} đ
                                     </Text>
@@ -1872,43 +2001,59 @@ export default function ViecNangJobScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                <Clock size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    {pricingMode === 'hourly'
-                                        ? `Công thợ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h)`
-                                        : `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`}
+                        {isFormComplete ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <Clock size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        {pricingMode === 'hourly'
+                                            ? `Công thợ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h)`
+                                            : `Thuê trọn gói: ${baseWage.toLocaleString('vi-VN')} đ`}
+                                    </Text>
+                                </View>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <Weight size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        Khối lượng: {parsedExactWeight > 0 ? parsedExactWeight.toLocaleString('vi-VN') : '0'} kg
+                                    </Text>
+                                </View>
+
+                                {needBelts && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                        <ShieldCheck size={13} color={colors.secondary} />
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                            Bảo hộ: 20.000 đ
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {needTrolley && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                        <ShieldCheck size={13} color={colors.primary} />
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                            Xe đẩy: 30.000 đ
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {selectedVoucher && voucherDiscount > 0 && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
+                                        <Tag size={13} color="#10b981" />
+                                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                                            Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <AlertCircle size={14} color={colors.textSecondary} />
+                                <Text style={{ fontSize: 12, color: colors.textSecondary, flex: 1 }}>
+                                    Vui lòng nhập địa chỉ, khối lượng và chọn đầu việc để tính giá
                                 </Text>
                             </View>
-
-                            {needBelts && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                    <ShieldCheck size={13} color={colors.secondary} />
-                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                        Bảo hộ: 20.000 đ
-                                    </Text>
-                                </View>
-                            )}
-
-                            {needTrolley && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                    <ShieldCheck size={13} color={colors.primary} />
-                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                        Xe đẩy: 30.000 đ
-                                    </Text>
-                                </View>
-                            )}
-
-                            {selectedVoucher && voucherDiscount > 0 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
-                                    <Tag size={13} color="#10b981" />
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
-                                        Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
+                        )}
 
                         <TouchableOpacity
                             activeOpacity={0.88}

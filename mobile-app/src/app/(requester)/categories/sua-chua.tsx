@@ -210,8 +210,8 @@ export default function SuaChuaJobScreen() {
     const [selectedCategory, setSelectedCategory] = useState('electric');
     const [selectedSeverity, setSelectedSeverity] = useState('minor');
 
-    // 3. Danh mục lỗi (Mặc định chọn 1 sự cố thuộc nhóm Điện dân dụng)
-    const [selectedIssues, setSelectedIssues] = useState<string[]>(['switch_light']);
+    // 3. Danh mục lỗi (Mặc định không chọn trước)
+    const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
     const [customIssueDetail, setCustomIssueDetail] = useState('');
 
     // Đính kèm hình ảnh/video hiện trạng hư hỏng (tối đa 5 tệp)
@@ -225,10 +225,8 @@ export default function SuaChuaJobScreen() {
     const handleSelectCategory = (catId: string) => {
         setSelectedCategory(catId);
         const catIssues = COMMON_ISSUES.filter((i) => i.category === catId);
-        const hasExisting = selectedIssues.some((id) => catIssues.some((ci) => ci.id === id));
-        if (!hasExisting && catIssues.length > 0) {
-            setSelectedIssues([catIssues[0].id]);
-        }
+        const hasExisting = selectedIssues.filter((id) => catIssues.some((ci) => ci.id === id));
+        setSelectedIssues(hasExisting);
     };
 
     const toggleIssue = (issueId: string) => {
@@ -618,6 +616,15 @@ export default function SuaChuaJobScreen() {
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
+    // Kiểm tra xem đã điền đầy đủ các mục cần nhập và chọn hay chưa
+    const isFormComplete = useMemo(() => {
+        if (!address.trim()) return false;
+        if (selectedIssues.length === 0 && !customIssueDetail.trim() && !specialNotes.trim()) return false;
+        if (pricingMode === 'hourly' && parsedHourlyWage <= 0) return false;
+        if (pricingMode === 'fixed' && parsedFixedPrice <= 0) return false;
+        return true;
+    }, [address, selectedIssues, customIssueDetail, specialNotes, pricingMode, parsedHourlyWage, parsedFixedPrice]);
+
     // Voucher Handlers
     const handleApplyVoucherCode = () => {
         const code = voucherInputCode.trim().toUpperCase();
@@ -662,8 +669,8 @@ export default function SuaChuaJobScreen() {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ cần sửa chữa.');
             return;
         }
-        if (selectedIssues.length === 0 && !customIssueDetail.trim()) {
-            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 sự cố cần khắc phục.');
+        if (selectedIssues.length === 0 && !customIssueDetail.trim() && !specialNotes.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc hoặc viết ghi chú mô tả công việc.');
             return;
         }
         if (pricingMode === 'hourly' && parsedHourlyWage <= 0) {
@@ -1773,15 +1780,15 @@ export default function SuaChuaJobScreen() {
                             shadows.card,
                         ]}
                     >
-                        <View style={{ marginBottom: 10 }}>
+                        <View style={{ marginBottom: isFormComplete ? 10 : 0 }}>
                             <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
-                                Tổng tiền công thợ dự kiến
+                                {isFormComplete ? 'Tổng tiền công thợ dự kiến' : 'Vui lòng hoàn tất thông tin'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 3 }}>
-                                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>
-                                    {grandTotal.toLocaleString('vi-VN')} đ
+                                <Text style={{ fontSize: isFormComplete ? 24 : 18, fontWeight: '900', color: isFormComplete ? colors.primary : colors.textSecondary }}>
+                                    {isFormComplete ? `${grandTotal.toLocaleString('vi-VN')} đ` : 'Chờ điền đủ thông tin'}
                                 </Text>
-                                {selectedVoucher && voucherDiscount > 0 && (
+                                {isFormComplete && selectedVoucher && voucherDiscount > 0 && (
                                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, textDecorationLine: 'line-through' }}>
                                         {subtotal.toLocaleString('vi-VN')} đ
                                     </Text>
@@ -1789,25 +1796,34 @@ export default function SuaChuaJobScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                <Wrench size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    {pricingMode === 'fixed'
-                                        ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
-                                        : `Công thợ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h)`}
-                                </Text>
-                            </View>
-
-                            {selectedVoucher && voucherDiscount > 0 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
-                                    <Tag size={13} color="#10b981" />
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
-                                        Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                        {isFormComplete ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <Wrench size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        {pricingMode === 'fixed'
+                                            ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
+                                            : `Công thợ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h)`}
                                     </Text>
                                 </View>
-                            )}
-                        </View>
+
+                                {selectedVoucher && voucherDiscount > 0 && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
+                                        <Tag size={13} color="#10b981" />
+                                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                                            Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <AlertCircle size={14} color={colors.textSecondary} />
+                                <Text style={{ fontSize: 12, color: colors.textSecondary, flex: 1 }}>
+                                    Vui lòng nhập địa chỉ và chọn vấn đề sửa chữa để tính giá
+                                </Text>
+                            </View>
+                        )}
 
                         {/* CẢNH BÁO CHI PHÍ VẬT TƯ (DISCLAIMER THEO FORMSUACHUA.MD) */}
                         <View

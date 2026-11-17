@@ -39,6 +39,7 @@ import {
     Zap,
     Camera,
     AlertTriangle,
+    AlertCircle,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
 import { useAppTheme } from '../../../constants/theme';
@@ -112,12 +113,13 @@ export function calculateVoucherDiscount(voucher: VoucherItem, subtotal: number)
     return voucher.maxDiscount ? Math.min(voucher.maxDiscount, percentAmount) : percentAmount;
 }
 
-// 4 Lĩnh vực kỹ thuật chính (Ngắn gọn)
+// Các lĩnh vực kỹ thuật
 export const SPECIALTIES = [
     { id: 'network', label: 'Mạng LAN & Camera' },
     { id: 'furniture', label: 'Lắp ráp nội thất gỗ' },
     { id: 'welding', label: 'Cơ khí & Hàn xì' },
     { id: 'painting', label: 'Sơn bả & Thạch cao' },
+    { id: 'other', label: 'Lĩnh vực khác' },
 ];
 
 // 2 Cấp độ tay nghề
@@ -129,7 +131,7 @@ export const SKILL_TIERS = [
 export interface TechTaskItem {
     id: string;
     label: string;
-    specialtyId: 'network' | 'furniture' | 'welding' | 'painting';
+    specialtyId: 'network' | 'furniture' | 'welding' | 'painting' | 'other';
 }
 
 // Danh mục đầu việc kỹ thuật phân theo lĩnh vực (Mục 1 FormChuyenMon.md)
@@ -198,6 +200,7 @@ export default function ChuyenMonJobScreen() {
 
     // 2. Chuyên ngành & Cấp độ tay nghề
     const [selectedSpecialty, setSelectedSpecialty] = useState('network');
+    const [customSpecialty, setCustomSpecialty] = useState('');
     const [selectedTier, setSelectedTier] = useState('standard');
 
     // 3. Danh mục đầu việc lọc động theo lĩnh vực (Mục 1 FormChuyenMon.md)
@@ -205,7 +208,7 @@ export default function ChuyenMonJobScreen() {
         return ALL_TECH_TASKS.filter((task) => task.specialtyId === selectedSpecialty);
     }, [selectedSpecialty]);
 
-    const [selectedTasks, setSelectedTasks] = useState<string[]>(['lan_pull']);
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
     const [customTaskDetail, setCustomTaskDetail] = useState('');
 
     // Đính kèm hình ảnh / bản vẽ phác thảo (Mục 3 FormChuyenMon.md)
@@ -218,11 +221,7 @@ export default function ChuyenMonJobScreen() {
     useEffect(() => {
         const validTaskIds = filteredTasks.map((t) => t.id);
         const existing = selectedTasks.filter((id) => validTaskIds.includes(id));
-        if (existing.length > 0) {
-            setSelectedTasks(existing);
-        } else {
-            setSelectedTasks(validTaskIds.slice(0, 1));
-        }
+        setSelectedTasks(existing);
     }, [selectedSpecialty]);
 
     const toggleTask = (taskId: string) => {
@@ -242,6 +241,8 @@ export default function ChuyenMonJobScreen() {
                 return 'Máy hàn điện tử, mặt nạ hàn, máy cắt sắt, que hàn...';
             case 'painting':
                 return 'Cọ lăn, khay sơn, bàn chà nhám, thang chữ A, bay trét...';
+            case 'other':
+                return 'Thợ tự trang bị máy móc & đồ nghề kỹ thuật phù hợp với yêu cầu';
             default:
                 return 'Máy móc & đồ nghề kỹ thuật chuyên dụng theo ngành';
         }
@@ -356,6 +357,7 @@ export default function ChuyenMonJobScreen() {
         else if (selectedSpecialty === 'network') baseWagePerHour = 110000;
         else if (selectedSpecialty === 'furniture') baseWagePerHour = 110000;
         else if (selectedSpecialty === 'painting') baseWagePerHour = 100000;
+        else if (selectedSpecialty === 'other') baseWagePerHour = 110000;
 
         if (selectedTier === 'expert') baseWagePerHour += 40000;
 
@@ -595,6 +597,16 @@ export default function ChuyenMonJobScreen() {
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
+    // Kiểm tra xem đã điền đầy đủ các mục cần nhập và chọn hay chưa
+    const isFormComplete = useMemo(() => {
+        if (!address.trim()) return false;
+        if (selectedSpecialty === 'other' && !customSpecialty.trim()) return false;
+        if (selectedTasks.length === 0 && !customTaskDetail.trim() && !specialNotes.trim()) return false;
+        if (pricingMode === 'hourly' && parsedHourlyWage <= 0) return false;
+        if (pricingMode === 'fixed' && parsedFixedPrice <= 0) return false;
+        return true;
+    }, [address, selectedSpecialty, customSpecialty, selectedTasks, customTaskDetail, specialNotes, pricingMode, parsedHourlyWage, parsedFixedPrice]);
+
     // Voucher Handlers
     const handleApplyVoucherCode = () => {
         const code = voucherInputCode.trim().toUpperCase();
@@ -639,8 +651,12 @@ export default function ChuyenMonJobScreen() {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ nơi cần làm việc.');
             return;
         }
-        if (selectedTasks.length === 0 && !customTaskDetail.trim()) {
-            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc kỹ thuật cần làm.');
+        if (selectedSpecialty === 'other' && !customSpecialty.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng nhập tên lĩnh vực chuyên môn cụ thể.');
+            return;
+        }
+        if (selectedTasks.length === 0 && !customTaskDetail.trim() && !specialNotes.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc hoặc viết ghi chú mô tả công việc.');
             return;
         }
         if (pricingMode === 'hourly' && parsedHourlyWage <= 0) {
@@ -648,11 +664,14 @@ export default function ChuyenMonJobScreen() {
             return;
         }
         if (pricingMode === 'fixed' && parsedFixedPrice <= 0) {
-            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao khoán theo công việc.');
+            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao trọn gói theo công việc.');
             return;
         }
 
         const specObj = SPECIALTIES.find((s) => s.id === selectedSpecialty);
+        const specialtyTitle = selectedSpecialty === 'other' && customSpecialty.trim()
+            ? `Khác: ${customSpecialty.trim()}`
+            : specObj?.label || 'Kỹ thuật';
         const tierObj = SKILL_TIERS.find((t) => t.id === selectedTier);
         const materialLabel =
             materialOption === 'customer_has_materials'
@@ -666,7 +685,7 @@ export default function ChuyenMonJobScreen() {
 
         const summaryLines = [
             `Địa điểm: ${address}${siteDetail ? ` (${siteDetail})` : ''}`,
-            `Lĩnh vực: ${specObj?.label} (${tierObj?.label})`,
+            `Lĩnh vực: ${specialtyTitle} (${tierObj?.label})`,
             `Hình thức: ${pricingSummary}`,
             `Thời gian: Thợ nhận việc & có mặt ngay (trong 30 - 60 phút)`,
             `Máy móc: ${workerBringsTools ? 'Thợ tự mang đồ nghề (+30.000đ)' : 'Chủ nhà có sẵn thiết bị'}`,
@@ -966,16 +985,17 @@ export default function ChuyenMonJobScreen() {
                             </Text>
                         </View>
 
-                        {/* 4 Nhóm chuyên ngành */}
+                        {/* Nhóm chuyên ngành */}
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                             {SPECIALTIES.map((spec) => {
                                 const isSelected = selectedSpecialty === spec.id;
+                                const isOther = spec.id === 'other';
                                 return (
                                     <TouchableOpacity
                                         key={spec.id}
                                         onPress={() => setSelectedSpecialty(spec.id)}
                                         style={{
-                                            width: '48.5%',
+                                            width: isOther ? '100%' : '48.5%',
                                             paddingVertical: 10,
                                             paddingHorizontal: 6,
                                             borderRadius: 12,
@@ -992,6 +1012,32 @@ export default function ChuyenMonJobScreen() {
                                 );
                             })}
                         </View>
+
+                        {/* Input nhập cụ thể khi chọn Lĩnh vực khác */}
+                        {selectedSpecialty === 'other' && (
+                            <View style={{ marginBottom: 12 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
+                                    Nhập lĩnh vực chuyên môn cụ thể:
+                                </Text>
+                                <TextInput
+                                    value={customSpecialty}
+                                    onChangeText={setCustomSpecialty}
+                                    placeholder="Ví dụ: Thợ may rèm cửa, Kỹ thuật hồ cá, Điện tử vi mạch..."
+                                    placeholderTextColor={colors.placeholder}
+                                    style={{
+                                        backgroundColor: colors.surfaceContainerLow,
+                                        borderRadius: 12,
+                                        paddingHorizontal: 12,
+                                        height: 48,
+                                        fontSize: 14,
+                                        fontWeight: '600',
+                                        color: colors.text,
+                                        borderWidth: 1.5,
+                                        borderColor: customSpecialty.trim() ? colors.primary : colors.border,
+                                    }}
+                                />
+                            </View>
+                        )}
 
                         {/* Cấp độ thợ */}
                         <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
@@ -1041,67 +1087,79 @@ export default function ChuyenMonJobScreen() {
                     >
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                             <Text style={{ fontSize: 14, fontWeight: '800', color: colors.text }}>
-                                Đầu việc kỹ thuật ({selectedTasks.length}/{filteredTasks.length})
+                                {filteredTasks.length > 0
+                                    ? `Đầu việc kỹ thuật (${selectedTasks.length}/${filteredTasks.length})`
+                                    : 'Mô tả đầu việc kỹ thuật'}
                             </Text>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    if (selectedTasks.length === filteredTasks.length) {
-                                        setSelectedTasks([]);
-                                    } else {
-                                        setSelectedTasks(filteredTasks.map((t) => t.id));
-                                    }
-                                }}
-                            >
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                                    {selectedTasks.length === filteredTasks.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
-                                </Text>
-                            </TouchableOpacity>
+                            {filteredTasks.length > 0 && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (selectedTasks.length === filteredTasks.length) {
+                                            setSelectedTasks([]);
+                                        } else {
+                                            setSelectedTasks(filteredTasks.map((t) => t.id));
+                                        }
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
+                                        {selectedTasks.length === filteredTasks.length ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
-                        <View style={{ gap: 7, marginTop: 4 }}>
-                            {filteredTasks.map((item) => {
-                                const isChecked = selectedTasks.includes(item.id);
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        onPress={() => toggleTask(item.id)}
-                                        activeOpacity={0.7}
-                                        style={{
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            paddingVertical: 10,
-                                            paddingHorizontal: 12,
-                                            borderRadius: 12,
-                                            backgroundColor: isChecked ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surfaceContainerLow,
-                                            borderWidth: 1,
-                                            borderColor: isChecked ? '#10b981' : colors.border,
-                                            gap: 10,
-                                        }}
-                                    >
-                                        <View
+                        {filteredTasks.length > 0 ? (
+                            <View style={{ gap: 7, marginTop: 4 }}>
+                                {filteredTasks.map((item) => {
+                                    const isChecked = selectedTasks.includes(item.id);
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.id}
+                                            onPress={() => toggleTask(item.id)}
+                                            activeOpacity={0.7}
                                             style={{
-                                                width: 18,
-                                                height: 18,
-                                                borderRadius: 5,
-                                                backgroundColor: isChecked ? '#10b981' : colors.surface,
-                                                borderWidth: 1.5,
-                                                borderColor: isChecked ? '#10b981' : colors.border,
+                                                flexDirection: 'row',
                                                 alignItems: 'center',
-                                                justifyContent: 'center',
+                                                paddingVertical: 10,
+                                                paddingHorizontal: 12,
+                                                borderRadius: 12,
+                                                backgroundColor: isChecked ? (isDark ? '#064e3b20' : '#f0fdf4') : colors.surfaceContainerLow,
+                                                borderWidth: 1,
+                                                borderColor: isChecked ? '#10b981' : colors.border,
+                                                gap: 10,
                                             }}
                                         >
-                                            {isChecked && <Check size={12} color="#ffffff" strokeWidth={3} />}
-                                        </View>
-                                        <Text
-                                            style={{ fontSize: 13, fontWeight: isChecked ? '700' : '600', color: colors.text, flex: 1 }}
-                                            numberOfLines={1}
-                                        >
-                                            {item.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                                            <View
+                                                style={{
+                                                    width: 18,
+                                                    height: 18,
+                                                    borderRadius: 5,
+                                                    backgroundColor: isChecked ? '#10b981' : colors.surface,
+                                                    borderWidth: 1.5,
+                                                    borderColor: isChecked ? '#10b981' : colors.border,
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                {isChecked && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                                            </View>
+                                            <Text
+                                                style={{ fontSize: 13, fontWeight: isChecked ? '700' : '600', color: colors.text, flex: 1 }}
+                                                numberOfLines={1}
+                                            >
+                                                {item.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        ) : (
+                            <View style={{ padding: 12, borderRadius: 12, backgroundColor: colors.surfaceContainerLow, borderWidth: 1, borderColor: colors.border, marginTop: 4 }}>
+                                <Text style={{ fontSize: 12.5, color: colors.textSecondary, fontStyle: 'italic', textAlign: 'center' }}>
+                                    Lĩnh vực khác không có checklist cố định. Vui lòng ghi chi tiết công việc cần làm ở ô mô tả bên dưới.
+                                </Text>
+                            </View>
+                        )}
 
                         <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
@@ -1496,25 +1554,100 @@ export default function ChuyenMonJobScreen() {
                             </Text>
                         </View>
 
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Thợ mang trọn gói đồ nghề</Text>
-                                <Text style={{ fontSize: 11, color: colors.textSecondary }}>{toolDescriptionBySpecialty}</Text>
-                            </View>
+                        {/* 2 Lựa chọn Máy móc & Đồ nghề kỹ thuật */}
+                        <View style={{ gap: 8, marginBottom: 12 }}>
+                            {/* Lựa chọn 1: Thợ mang trọn gói đồ nghề */}
                             <TouchableOpacity
-                                onPress={() => setWorkerBringsTools(!workerBringsTools)}
+                                onPress={() => setWorkerBringsTools(true)}
+                                activeOpacity={0.7}
                                 style={{
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 12,
                                     borderRadius: 12,
-                                    backgroundColor: workerBringsTools ? '#dcfce7' : colors.surfaceContainer,
-                                    borderWidth: 1,
-                                    borderColor: workerBringsTools ? '#10b981' : colors.border,
+                                    backgroundColor: workerBringsTools ? colors.primary + '12' : colors.surfaceContainerLow,
+                                    borderWidth: 1.5,
+                                    borderColor: workerBringsTools ? colors.primary : colors.border,
+                                    gap: 10,
                                 }}
                             >
-                                <Text style={{ fontSize: 11.5, fontWeight: '800', color: workerBringsTools ? '#059669' : colors.textSecondary }}>
-                                    {workerBringsTools ? 'Đã bật (+30k)' : 'Chủ nhà có sẵn'}
-                                </Text>
+                                <View
+                                    style={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: 9,
+                                        borderWidth: 2,
+                                        borderColor: workerBringsTools ? colors.primary : colors.textSecondary,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {workerBringsTools && (
+                                        <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.primary }} />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                            Thợ mang trọn gói đồ nghề
+                                        </Text>
+                                        <View style={{ backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#059669' }}>
+                                                +30.000 đ/thợ
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 3 }}>
+                                        {toolDescriptionBySpecialty}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            {/* Lựa chọn 2: Chủ nhà có sẵn máy móc thiết bị */}
+                            <TouchableOpacity
+                                onPress={() => setWorkerBringsTools(false)}
+                                activeOpacity={0.7}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 12,
+                                    borderRadius: 12,
+                                    backgroundColor: !workerBringsTools ? colors.primary + '12' : colors.surfaceContainerLow,
+                                    borderWidth: 1.5,
+                                    borderColor: !workerBringsTools ? colors.primary : colors.border,
+                                    gap: 10,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: 9,
+                                        borderWidth: 2,
+                                        borderColor: !workerBringsTools ? colors.primary : colors.textSecondary,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {!workerBringsTools && (
+                                        <View style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.primary }} />
+                                    )}
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>
+                                            Chủ nhà có sẵn máy móc & thiết bị
+                                        </Text>
+                                        <View style={{ backgroundColor: colors.surfaceContainer, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                                            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary }}>
+                                                Miễn phí
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 3 }}>
+                                        Gia đình hoặc công trình đã có sẵn đầy đủ máy móc & đồ nghề cần thiết
+                                    </Text>
+                                </View>
                             </TouchableOpacity>
                         </View>
 
@@ -1732,15 +1865,15 @@ export default function ChuyenMonJobScreen() {
                             shadows.card,
                         ]}
                     >
-                        <View style={{ marginBottom: 10 }}>
+                        <View style={{ marginBottom: isFormComplete ? 10 : 0 }}>
                             <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
-                                Tổng thù lao thợ kỹ thuật dự kiến
+                                {isFormComplete ? 'Tổng thù lao thợ kỹ thuật dự kiến' : 'Vui lòng hoàn tất thông tin'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 3 }}>
-                                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>
-                                    {grandTotal.toLocaleString('vi-VN')} đ
+                                <Text style={{ fontSize: isFormComplete ? 24 : 18, fontWeight: '900', color: isFormComplete ? colors.primary : colors.textSecondary }}>
+                                    {isFormComplete ? `${grandTotal.toLocaleString('vi-VN')} đ` : 'Chờ điền đủ thông tin'}
                                 </Text>
-                                {selectedVoucher && voucherDiscount > 0 && (
+                                {isFormComplete && selectedVoucher && voucherDiscount > 0 && (
                                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, textDecorationLine: 'line-through' }}>
                                         {subtotal.toLocaleString('vi-VN')} đ
                                     </Text>
@@ -1748,34 +1881,43 @@ export default function ChuyenMonJobScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                <Wrench size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    {pricingMode === 'fixed'
-                                        ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
-                                        : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} thợ)`}
+                        {isFormComplete ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <Wrench size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        {pricingMode === 'fixed'
+                                            ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
+                                            : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} thợ)`}
+                                    </Text>
+                                </View>
+
+                                {workerBringsTools && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                        <Hammer size={13} color="#059669" />
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
+                                            Máy móc: +{toolsAllowance.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {selectedVoucher && voucherDiscount > 0 && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
+                                        <Tag size={13} color="#10b981" />
+                                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                                            Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <AlertCircle size={14} color={colors.textSecondary} />
+                                <Text style={{ fontSize: 12, color: colors.textSecondary, flex: 1 }}>
+                                    Vui lòng nhập địa chỉ, lĩnh vực và chọn đầu việc để tính giá
                                 </Text>
                             </View>
-
-                            {workerBringsTools && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                    <Hammer size={13} color="#059669" />
-                                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
-                                        Máy móc: +{toolsAllowance.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </View>
-                            )}
-
-                            {selectedVoucher && voucherDiscount > 0 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
-                                    <Tag size={13} color="#10b981" />
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
-                                        Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
+                        )}
 
                         {/* Lưu ý chi phí vật tư */}
                         <View

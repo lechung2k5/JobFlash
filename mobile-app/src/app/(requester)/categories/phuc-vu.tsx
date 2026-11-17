@@ -120,11 +120,21 @@ export const EVENT_TYPES = [
 ];
 
 // Quy mô bàn tiệc & Ràng buộc số lượng nhân sự tối thiểu (Hard Validation theo FormPhucVu.md)
-export const SCALE_TIERS = [
-    { id: 'small', label: '< 5 bàn', minWorkers: 1 },
-    { id: 'medium', label: '5 - 15 bàn', minWorkers: 2 },
-    { id: 'large', label: '15 - 30 bàn', minWorkers: 4 },
-    { id: 'huge', label: '> 30 bàn', minWorkers: 6 },
+export interface ScaleTier {
+    id: string;
+    label: string;
+    minWorkers: number;
+    minTables: number;
+    maxTables: number;
+    defaultTables: number;
+    rangeText: string;
+}
+
+export const SCALE_TIERS: ScaleTier[] = [
+    { id: 'small', label: '1 - 5 bàn', minWorkers: 1, minTables: 1, maxTables: 5, defaultTables: 4, rangeText: 'từ 1 đến 5 bàn' },
+    { id: 'medium', label: '6 - 15 bàn', minWorkers: 2, minTables: 6, maxTables: 15, defaultTables: 10, rangeText: 'từ 6 đến 15 bàn' },
+    { id: 'large', label: '16 - 30 bàn', minWorkers: 4, minTables: 16, maxTables: 30, defaultTables: 20, rangeText: 'từ 16 đến 30 bàn' },
+    { id: 'huge', label: '31 - 100 bàn', minWorkers: 6, minTables: 31, maxTables: 100, defaultTables: 35, rangeText: 'từ 31 đến 100 bàn' },
 ];
 
 // Ưu tiên giới tính (Theo FormPhucVu.md)
@@ -182,9 +192,30 @@ export default function PhucVuJobScreen() {
     // 2. Loại hình & Quy mô
     const [selectedEvent, setSelectedEvent] = useState('wedding');
     const [selectedScale, setSelectedScale] = useState('medium');
+    const [exactTables, setExactTables] = useState('10');
 
-    // 3. Danh mục đầu việc (Mặc định chọn tiếp thực)
-    const [selectedTasks, setSelectedTasks] = useState<string[]>(['runner', 'waiter']);
+    const currentScaleTier = useMemo(() => {
+        return SCALE_TIERS.find((s) => s.id === selectedScale) || SCALE_TIERS[1];
+    }, [selectedScale]);
+
+    const parsedExactTables = useMemo(() => {
+        return parseInt(exactTables.replace(/\D/g, ''), 10) || 0;
+    }, [exactTables]);
+
+    const exactTablesFormatted = useMemo(() => {
+        if (!exactTables) return '';
+        const num = parseInt(exactTables.replace(/\D/g, ''), 10) || 0;
+        return num > 0 ? num.toLocaleString('vi-VN') : '';
+    }, [exactTables]);
+
+    const isExactTablesValid = useMemo(() => {
+        if (!exactTables.trim()) return false;
+        const num = parseInt(exactTables.replace(/\D/g, ''), 10) || 0;
+        return num >= currentScaleTier.minTables && num <= currentScaleTier.maxTables;
+    }, [exactTables, currentScaleTier]);
+
+    // 3. Danh mục đầu việc (Mặc định không chọn trước)
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
     const [customTaskDetail, setCustomTaskDetail] = useState('');
 
     const toggleTask = (taskId: string) => {
@@ -214,6 +245,17 @@ export default function PhucVuJobScreen() {
         if (workersCount < minW) {
             setWorkersCount(minW);
         }
+        if (target) {
+            const num = parseInt(exactTables.replace(/\D/g, ''), 10) || 0;
+            if (num < target.minTables || num > target.maxTables) {
+                setExactTables(target.defaultTables.toString());
+            }
+        }
+    };
+
+    const handleExactTablesChange = (text: string) => {
+        const raw = text.replace(/\D/g, '');
+        setExactTables(raw);
     };
 
     // 5. Tiêu chuẩn nhân sự & Trang phục & Ghi chú (Bổ sung Ưu tiên giới tính theo FormPhucVu.md)
@@ -397,7 +439,7 @@ export default function PhucVuJobScreen() {
         try {
             const loc = await GoongService.getCurrentLocation();
             if (loc) flyToLocation(loc.latitude, loc.longitude);
-        } catch {}
+        } catch { }
     };
 
     const zoomInMap = () => {
@@ -492,6 +534,17 @@ export default function PhucVuJobScreen() {
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
+    // Kiểm tra xem đã điền đầy đủ các mục cần nhập và chọn hay chưa
+    const isFormComplete = useMemo(() => {
+        if (!address.trim()) return false;
+        if (selectedTasks.length === 0 && !customTaskDetail.trim() && !specialNotes.trim()) return false;
+        if (!exactTables.trim() || !isExactTablesValid) return false;
+        if (workersCount < minWorkersRequired) return false;
+        if (pricingMode === 'hourly' && parsedHourlyWage <= 0) return false;
+        if (pricingMode === 'fixed' && parsedFixedPrice <= 0) return false;
+        return true;
+    }, [address, selectedTasks, customTaskDetail, specialNotes, exactTables, isExactTablesValid, workersCount, minWorkersRequired, pricingMode, parsedHourlyWage, parsedFixedPrice]);
+
     // Voucher Handlers
     const handleApplyVoucherCode = () => {
         const code = voucherInputCode.trim().toUpperCase();
@@ -536,8 +589,15 @@ export default function PhucVuJobScreen() {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ nhà hàng, sảnh tiệc.');
             return;
         }
-        if (selectedTasks.length === 0 && !customTaskDetail.trim()) {
-            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc cần hỗ trợ.');
+        if (selectedTasks.length === 0 && !customTaskDetail.trim() && !specialNotes.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc hoặc viết ghi chú mô tả công việc.');
+            return;
+        }
+        if (!exactTables.trim() || !isExactTablesValid) {
+            Alert.alert(
+                t('common.error'),
+                `Vui lòng nhập số lượng bàn cụ thể hợp lệ (${currentScaleTier.rangeText}).`
+            );
             return;
         }
         if (workersCount < minWorkersRequired) {
@@ -549,7 +609,7 @@ export default function PhucVuJobScreen() {
             return;
         }
         if (pricingMode === 'fixed' && parsedFixedPrice <= 0) {
-            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao khoán theo ca.');
+            Alert.alert(t('common.error'), 'Vui lòng nhập mức thù lao trọn gói theo ca.');
             return;
         }
 
@@ -571,6 +631,7 @@ export default function PhucVuJobScreen() {
             eventLabel: eventObj?.label,
             scaleTier: selectedScale,
             scaleLabel: scaleObj?.label,
+            exactTablesCount: parsedExactTables,
             minWorkersRequired,
             genderPref,
             genderPrefLabel: genderLabel,
@@ -913,7 +974,7 @@ export default function PhucVuJobScreen() {
                                 Tối thiểu {minWorkersRequired} người
                             </Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
                             {SCALE_TIERS.map((s) => {
                                 const isSelected = selectedScale === s.id;
                                 return (
@@ -932,12 +993,78 @@ export default function PhucVuJobScreen() {
                                             backgroundColor: isSelected ? colors.primary + '15' : colors.surfaceContainerLow,
                                         }}
                                     >
-                                        <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? colors.primary : colors.text }}>
+                                        <Text
+                                            style={{ fontSize: 11.5, fontWeight: '800', color: isSelected ? colors.primary : colors.text }}
+                                            numberOfLines={1}
+                                            adjustsFontSizeToFit
+                                        >
                                             {s.label}
                                         </Text>
                                     </TouchableOpacity>
                                 );
                             })}
+                        </View>
+
+                        {/* Input cụ thể số lượng bàn */}
+                        <View style={{ marginBottom: 4 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                    Số lượng bàn cụ thể ({currentScaleTier.rangeText})
+                                </Text>
+                                {isExactTablesValid && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                                        <Check size={12} color="#10b981" strokeWidth={3} />
+                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Hợp lệ</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            <View
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    borderWidth: 1.5,
+                                    borderColor: !isExactTablesValid && exactTables.length > 0
+                                        ? '#ef4444'
+                                        : isExactTablesValid
+                                            ? '#10b981'
+                                            : colors.border,
+                                    borderRadius: 12,
+                                    backgroundColor: colors.surfaceContainerLow,
+                                    paddingHorizontal: 12,
+                                    height: 48,
+                                }}
+                            >
+                                <Utensils size={18} color={isExactTablesValid ? '#10b981' : colors.textSecondary} style={{ marginRight: 8 }} />
+                                <TextInput
+                                    style={{
+                                        flex: 1,
+                                        fontSize: 15,
+                                        fontWeight: '700',
+                                        color: colors.text,
+                                        paddingVertical: 0,
+                                    }}
+                                    keyboardType="numeric"
+                                    value={exactTablesFormatted}
+                                    onChangeText={handleExactTablesChange}
+                                    placeholder={`Ví dụ: ${currentScaleTier.defaultTables}`}
+                                    placeholderTextColor={colors.textSecondary}
+                                />
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginLeft: 8 }}>
+                                    bàn
+                                </Text>
+                            </View>
+
+                            {!isExactTablesValid && exactTables.length > 0 && (
+                                <Text style={{ fontSize: 11.5, color: '#ef4444', fontWeight: '600', marginTop: 4 }}>
+                                    ⚠️ Số lượng bàn phải nằm trong khoảng {currentScaleTier.rangeText}.
+                                </Text>
+                            )}
+                            {exactTables.length === 0 && (
+                                <Text style={{ fontSize: 11.5, color: '#ef4444', fontWeight: '600', marginTop: 4 }}>
+                                    ⚠️ Vui lòng nhập số lượng bàn cụ thể ({currentScaleTier.rangeText}).
+                                </Text>
+                            )}
                         </View>
                     </View>
 
@@ -1102,7 +1229,7 @@ export default function PhucVuJobScreen() {
                                 }}
                             >
                                 <Text style={{ fontSize: 13, fontWeight: '800', color: pricingMode === 'fixed' ? colors.primary : colors.textSecondary }}>
-                                    Khoán trọn ca
+                                    Thuê trọn gói
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1532,15 +1659,15 @@ export default function PhucVuJobScreen() {
                             shadows.card,
                         ]}
                     >
-                        <View style={{ marginBottom: 10 }}>
+                        <View style={{ marginBottom: isFormComplete ? 10 : 0 }}>
                             <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
-                                Tổng thù lao nhân sự dự kiến
+                                {isFormComplete ? 'Tổng thù lao nhân sự dự kiến' : 'Vui lòng hoàn tất thông tin'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 3 }}>
-                                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>
-                                    {grandTotal.toLocaleString('vi-VN')} đ
+                                <Text style={{ fontSize: isFormComplete ? 24 : 18, fontWeight: '900', color: isFormComplete ? colors.primary : colors.textSecondary }}>
+                                    {isFormComplete ? `${grandTotal.toLocaleString('vi-VN')} đ` : 'Chờ điền đủ thông tin'}
                                 </Text>
-                                {selectedVoucher && voucherDiscount > 0 && (
+                                {isFormComplete && selectedVoucher && voucherDiscount > 0 && (
                                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, textDecorationLine: 'line-through' }}>
                                         {subtotal.toLocaleString('vi-VN')} đ
                                     </Text>
@@ -1548,25 +1675,41 @@ export default function PhucVuJobScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                <Users size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    {pricingMode === 'fixed'
-                                        ? `Khoán ca: ${baseWage.toLocaleString('vi-VN')} đ (${workersCount} người)`
-                                        : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} người)`}
-                                </Text>
-                            </View>
-
-                            {selectedVoucher && voucherDiscount > 0 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
-                                    <Tag size={13} color="#10b981" />
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
-                                        Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                        {isFormComplete ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <Users size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        {pricingMode === 'fixed'
+                                            ? `Thuê trọn gói: ${baseWage.toLocaleString('vi-VN')} đ (${workersCount} người)`
+                                            : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} người)`}
                                     </Text>
                                 </View>
-                            )}
-                        </View>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <Utensils size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        Quy mô: {parsedExactTables > 0 ? parsedExactTables.toLocaleString('vi-VN') : '0'} bàn
+                                    </Text>
+                                </View>
+
+                                {selectedVoucher && voucherDiscount > 0 && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
+                                        <Tag size={13} color="#10b981" />
+                                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                                            Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <AlertCircle size={14} color={colors.textSecondary} />
+                                <Text style={{ fontSize: 12, color: colors.textSecondary, flex: 1 }}>
+                                    Vui lòng nhập địa chỉ, số lượng bàn và chọn đầu việc để tính giá
+                                </Text>
+                            </View>
+                        )}
 
                         <TouchableOpacity
                             activeOpacity={0.88}

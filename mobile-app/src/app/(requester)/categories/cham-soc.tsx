@@ -36,6 +36,7 @@ import {
     UserCheck,
     Stethoscope,
     AlertTriangle,
+    AlertCircle,
     Zap,
 } from 'lucide-react-native';
 import { GoongService, GoongPlacePrediction, GOONG_MAPTILES_KEY } from '../../../services/goongService';
@@ -200,23 +201,22 @@ export default function ChamSocJobScreen() {
     const [selectedMobility, setSelectedMobility] = useState('assisted');
     const [preferredGender, setPreferredGender] = useState<'male' | 'female' | 'any'>('any');
 
+    // Tình trạng sinh hoạt chỉ áp dụng cho Người cao tuổi và Bệnh nhân (ẩn khi chọn Trẻ nhỏ hoặc Thú cưng)
+    const isMobilityApplicable = selectedRecipient === 'elderly' || selectedRecipient === 'patient';
+
     // 3. Danh mục đầu việc lọc động theo đối tượng (Mục 2 FormChamSoc.md)
     const filteredTasks = useMemo(() => {
         return ALL_CARE_TASKS.filter((task) => task.targetTypes.includes(selectedRecipient as any));
     }, [selectedRecipient]);
 
-    const [selectedTasks, setSelectedTasks] = useState<string[]>(['feed_med', 'hygiene']);
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
     const [customConditionDetail, setCustomConditionDetail] = useState('');
 
     // Tự động đồng bộ checklist khi đổi nhóm đối tượng chăm sóc
     useEffect(() => {
         const validTaskIds = filteredTasks.map((t) => t.id);
         const existing = selectedTasks.filter((id) => validTaskIds.includes(id));
-        if (existing.length > 0) {
-            setSelectedTasks(existing);
-        } else {
-            setSelectedTasks(validTaskIds.slice(0, 2));
-        }
+        setSelectedTasks(existing);
     }, [selectedRecipient]);
 
     const toggleTask = (taskId: string) => {
@@ -267,8 +267,11 @@ export default function ChamSocJobScreen() {
         else if (selectedRecipient === 'child') baseWagePerHour = 65000;
         else if (selectedRecipient === 'pet') baseWagePerHour = 50000;
 
-        if (selectedMobility === 'bedridden') baseWagePerHour += 15000;
-        else if (selectedMobility === 'assisted') baseWagePerHour += 5000;
+        // Chỉ cộng phụ cấp tình trạng sinh hoạt đối với Người cao tuổi & Bệnh nhân
+        if (isMobilityApplicable) {
+            if (selectedMobility === 'bedridden') baseWagePerHour += 15000;
+            else if (selectedMobility === 'assisted') baseWagePerHour += 5000;
+        }
 
         let recH = 4;
         if (selectedRecipient === 'pet') recH = 2;
@@ -284,7 +287,7 @@ export default function ChamSocJobScreen() {
             fixedPrice: recFixed,
             fixedPriceFormatted: recFixed.toLocaleString('vi-VN'),
         };
-    }, [selectedRecipient, selectedMobility, selectedTasks, workersCount]);
+    }, [selectedRecipient, selectedMobility, isMobilityApplicable, selectedTasks, workersCount]);
 
     // Các chip gợi ý thù lao theo giờ tự động cập nhật
     const dynamicHourlyChips = useMemo(() => {
@@ -504,6 +507,15 @@ export default function ChamSocJobScreen() {
     const voucherDiscount = selectedVoucher ? calculateVoucherDiscount(selectedVoucher, subtotal) : 0;
     const grandTotal = Math.max(0, subtotal - voucherDiscount);
 
+    // Kiểm tra xem đã điền đầy đủ các mục cần nhập và chọn hay chưa
+    const isFormComplete = useMemo(() => {
+        if (!address.trim()) return false;
+        if (selectedTasks.length === 0 && !customConditionDetail.trim() && !specialNotes.trim()) return false;
+        if (pricingMode === 'hourly' && parsedHourlyWage <= 0) return false;
+        if (pricingMode === 'fixed' && parsedFixedPrice <= 0) return false;
+        return true;
+    }, [address, selectedTasks, customConditionDetail, specialNotes, pricingMode, parsedHourlyWage, parsedFixedPrice]);
+
     // Voucher Handlers
     const handleApplyVoucherCode = () => {
         const code = voucherInputCode.trim().toUpperCase();
@@ -548,8 +560,8 @@ export default function ChamSocJobScreen() {
             Alert.alert(t('common.error'), 'Vui lòng nhập hoặc chọn địa chỉ nơi cần chăm sóc.');
             return;
         }
-        if (selectedTasks.length === 0 && !customConditionDetail.trim()) {
-            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc cần hỗ trợ.');
+        if (selectedTasks.length === 0 && !customConditionDetail.trim() && !specialNotes.trim()) {
+            Alert.alert(t('common.error'), 'Vui lòng chọn ít nhất 1 đầu việc hoặc viết ghi chú mô tả công việc.');
             return;
         }
         if (pricingMode === 'hourly' && parsedHourlyWage <= 0) {
@@ -572,7 +584,7 @@ export default function ChamSocJobScreen() {
 
         const summaryLines = [
             `Địa điểm: ${address}${houseDetail ? ` (${houseDetail})` : ''}`,
-            `Đối tượng: ${recObj?.label} - ${mobObj?.label}`,
+            `Đối tượng: ${recObj?.label}${isMobilityApplicable ? ` - ${mobObj?.label}` : ''}`,
             `Ưu tiên giới tính: ${genderObj?.label || 'Bất kỳ'}`,
             `Hình thức: ${pricingSummary}`,
             `Thời gian: Nhận việc & có mặt ngay (trong 30 - 60 phút)`,
@@ -872,7 +884,7 @@ export default function ChamSocJobScreen() {
                         </View>
 
                         {/* 4 Nhóm đối tượng */}
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: isMobilityApplicable ? 12 : 4 }}>
                             {RECIPIENT_TYPES.map((rec) => {
                                 const isSelected = selectedRecipient === rec.id;
                                 return (
@@ -898,39 +910,43 @@ export default function ChamSocJobScreen() {
                             })}
                         </View>
 
-                        {/* Tình trạng sinh hoạt */}
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
-                            Tình trạng sinh hoạt
-                        </Text>
-                        <View style={{ flexDirection: 'row', gap: 6 }}>
-                            {MOBILITY_STATUSES.map((m) => {
-                                const isSelected = selectedMobility === m.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={m.id}
-                                        onPress={() => setSelectedMobility(m.id)}
-                                        style={{
-                                            flex: 1,
-                                            paddingVertical: 9,
-                                            paddingHorizontal: 2,
-                                            borderRadius: 10,
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderWidth: 1.5,
-                                            borderColor: isSelected ? colors.primary : colors.border,
-                                            backgroundColor: isSelected ? colors.primary + '15' : colors.surfaceContainerLow,
-                                        }}
-                                    >
-                                        <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? colors.primary : colors.text, textAlign: 'center' }}>
-                                            {m.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                        {/* Tình trạng sinh hoạt (Chỉ hiển thị cho Người cao tuổi & Bệnh nhân, tắt khi chọn Trẻ nhỏ hoặc Thú cưng) */}
+                        {isMobilityApplicable && (
+                            <>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
+                                    Tình trạng sinh hoạt
+                                </Text>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    {MOBILITY_STATUSES.map((m) => {
+                                        const isSelected = selectedMobility === m.id;
+                                        return (
+                                            <TouchableOpacity
+                                                key={m.id}
+                                                onPress={() => setSelectedMobility(m.id)}
+                                                style={{
+                                                    flex: 1,
+                                                    paddingVertical: 9,
+                                                    paddingHorizontal: 2,
+                                                    borderRadius: 10,
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    borderWidth: 1.5,
+                                                    borderColor: isSelected ? colors.primary : colors.border,
+                                                    backgroundColor: isSelected ? colors.primary + '15' : colors.surfaceContainerLow,
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: 12, fontWeight: '800', color: isSelected ? colors.primary : colors.text, textAlign: 'center' }}>
+                                                    {m.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            </>
+                        )}
 
                         {/* Ưu tiên giới tính người chăm sóc (Mục 1 FormChamSoc.md) */}
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: 12, marginBottom: 6 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginTop: isMobilityApplicable ? 12 : 8, marginBottom: 6 }}>
                             Ưu tiên giới tính người chăm sóc
                         </Text>
                         <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -1038,12 +1054,22 @@ export default function ChamSocJobScreen() {
 
                         <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.border }}>
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 5 }}>
-                                Lưu ý thói quen sinh hoạt / bệnh lý nền:
+                                {selectedRecipient === 'child'
+                                    ? 'Lưu ý tính cách / thói quen của bé:'
+                                    : selectedRecipient === 'pet'
+                                    ? 'Lưu ý thói quen / tập tính thú cưng:'
+                                    : 'Lưu ý thói quen sinh hoạt / bệnh lý nền:'}
                             </Text>
                             <TextInput
                                 value={customConditionDetail}
                                 onChangeText={setCustomConditionDetail}
-                                placeholder="Ví dụ: Ăn nhạt kiêng đường, có bệnh lý cao huyết áp, cần cẩn thận khi dìu đi..."
+                                placeholder={
+                                    selectedRecipient === 'child'
+                                        ? 'Ví dụ: Bé hiếu động, dị ứng sữa hạt, hay quấy khóc khi ngủ...'
+                                        : selectedRecipient === 'pet'
+                                        ? 'Ví dụ: Cún nhát người lạ, cần rọ mõm khi ra ngoài, không ăn đồ ngọt...'
+                                        : 'Ví dụ: Ăn nhạt kiêng đường, có bệnh lý cao huyết áp, cần cẩn thận khi dìu đi...'
+                                }
                                 placeholderTextColor={colors.placeholder}
                                 style={{
                                     backgroundColor: colors.surfaceContainerLow,
@@ -1561,15 +1587,15 @@ export default function ChamSocJobScreen() {
                             shadows.card,
                         ]}
                     >
-                        <View style={{ marginBottom: 10 }}>
+                        <View style={{ marginBottom: isFormComplete ? 10 : 0 }}>
                             <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
-                                Tổng thù lao chăm sóc dự kiến
+                                {isFormComplete ? 'Tổng thù lao chăm sóc dự kiến' : 'Vui lòng hoàn tất thông tin'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 3 }}>
-                                <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary }}>
-                                    {grandTotal.toLocaleString('vi-VN')} đ
+                                <Text style={{ fontSize: isFormComplete ? 24 : 18, fontWeight: '900', color: isFormComplete ? colors.primary : colors.textSecondary }}>
+                                    {isFormComplete ? `${grandTotal.toLocaleString('vi-VN')} đ` : 'Chờ điền đủ thông tin'}
                                 </Text>
-                                {selectedVoucher && voucherDiscount > 0 && (
+                                {isFormComplete && selectedVoucher && voucherDiscount > 0 && (
                                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, textDecorationLine: 'line-through' }}>
                                         {subtotal.toLocaleString('vi-VN')} đ
                                     </Text>
@@ -1577,34 +1603,43 @@ export default function ChamSocJobScreen() {
                             </View>
                         </View>
 
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                <HeartHandshake size={13} color={colors.primary} />
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-                                    {pricingMode === 'fixed'
-                                        ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
-                                        : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} người)`}
+                        {isFormComplete ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                    <HeartHandshake size={13} color={colors.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+                                        {pricingMode === 'fixed'
+                                            ? `Khoán việc: ${baseWage.toLocaleString('vi-VN')} đ`
+                                            : `Công giờ: ${baseWage.toLocaleString('vi-VN')} đ (${hours}h × ${workersCount} người)`}
+                                    </Text>
+                                </View>
+
+                                {needNursingSkill && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
+                                        <Stethoscope size={13} color="#059669" />
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
+                                            Điều dưỡng: +{nursingAllowance.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {selectedVoucher && voucherDiscount > 0 && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
+                                        <Tag size={13} color="#10b981" />
+                                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
+                                            Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 10, borderTopWidth: 1, borderColor: isDark ? colors.border : '#e9d5ff' }}>
+                                <AlertCircle size={14} color={colors.textSecondary} />
+                                <Text style={{ fontSize: 12, color: colors.textSecondary, flex: 1 }}>
+                                    Vui lòng nhập địa chỉ và chọn đầu việc để tính giá
                                 </Text>
                             </View>
-
-                            {needNursingSkill && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, gap: 6 }}>
-                                    <Stethoscope size={13} color="#059669" />
-                                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#059669' }}>
-                                        Điều dưỡng: +{nursingAllowance.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </View>
-                            )}
-
-                            {selectedVoucher && voucherDiscount > 0 && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#064e3b30' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#10b981', gap: 6 }}>
-                                    <Tag size={13} color="#10b981" />
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#059669' }}>
-                                        Mã {selectedVoucher.code}: -{voucherDiscount.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
+                        )}
 
                         <TouchableOpacity
                             activeOpacity={0.88}
